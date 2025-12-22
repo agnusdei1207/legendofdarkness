@@ -19,8 +19,10 @@ pub struct Player {
     // 전투 스탯
     pub combat_stats: CombatStats,
     
-    // 위치
-    pub current_map: String,
+    // 장비 및 인벤토리
+    pub equipment: std::collections::HashMap<crate::shared::domain::item::models::EquipmentSlot, crate::shared::domain::item::models::Item>,
+    pub inventory: Vec<Option<crate::shared::domain::item::models::Item>>, // 24 slots, some maybe empty
+    pub gold: i64,
     pub position: Position,
     pub direction: Direction,
     
@@ -48,8 +50,11 @@ impl Player {
             exp_to_next_level: 100,
             stats,
             stat_points: 0,
+            stat_points: 0,
             combat_stats,
-            current_map: "village".to_string(), // Updated to match DB seed
+            equipment: std::collections::HashMap::new(),
+            inventory: vec![None; 24], // 24 slots
+            current_map: "village".to_string(),
             position: Position::new(400.0, 300.0),
             direction: Direction::Down,
             gold: 100,
@@ -70,7 +75,7 @@ impl Player {
         self.exp -= self.exp_to_next_level;
         self.level += 1;
         self.exp_to_next_level = self.calculate_exp_to_next_level();
-        self.stat_points += 5;
+        self.stat_points += 2; // User requested 2 points per level
         
         // 레벨업 시 HP/MP 회복
         self.combat_stats = CombatStats::from_stats(&self.stats, self.level);
@@ -83,11 +88,11 @@ impl Player {
     pub fn add_stat(&mut self, stat_type: StatType, amount: i32) {
         if self.stat_points >= amount {
             match stat_type {
-                StatType::Strength => self.stats.strength += amount,
-                StatType::Dexterity => self.stats.dexterity += amount,
-                StatType::Intelligence => self.stats.intelligence += amount,
-                StatType::Vitality => self.stats.vitality += amount,
-                StatType::Luck => self.stats.luck += amount,
+                StatType::Str => self.stats.str += amount,
+                StatType::Dex => self.stats.dex += amount,
+                StatType::Int => self.stats.int += amount,
+                StatType::Con => self.stats.con += amount,
+                StatType::Wis => self.stats.wis += amount,
             }
             self.stat_points -= amount;
             self.combat_stats = CombatStats::from_stats(&self.stats, self.level);
@@ -141,19 +146,19 @@ impl PlayerClass {
         // Legend of Darkness style roughly
         match self {
             PlayerClass::Warrior => Stats {
-                strength: 10, dexterity: 5, intelligence: 3, vitality: 10, luck: 3
+                str: 10, dex: 5, int: 3, con: 10, wis: 3
             },
             PlayerClass::Rogue => Stats {
-                strength: 7, dexterity: 10, intelligence: 3, vitality: 5, luck: 5
+                str: 7, dex: 10, int: 3, con: 5, wis: 5
             },
             PlayerClass::Mage => Stats {
-                strength: 3, dexterity: 4, intelligence: 10, vitality: 3, luck: 3
+                str: 3, dex: 4, int: 10, con: 3, wis: 3
             },
             PlayerClass::Cleric => Stats {
-                strength: 4, dexterity: 4, intelligence: 7, vitality: 5, luck: 3 // Wis -> Int/Vit mix
+                str: 4, dex: 4, int: 7, con: 5, wis: 3 // Wis -> Int/Vit mix
             },
             PlayerClass::MartialArtist => Stats {
-                strength: 8, dexterity: 8, intelligence: 3, vitality: 8, luck: 3
+                str: 8, dex: 8, int: 3, con: 8, wis: 3
             },
         }
     }
@@ -161,9 +166,9 @@ impl PlayerClass {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum StatType {
-    Strength,
-    Dexterity,
-    Intelligence,
-    Vitality,
-    Luck,
+    Str,
+    Dex,
+    Int,
+    Con,
+    Wis,
 }

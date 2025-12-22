@@ -23,6 +23,31 @@ impl GameMap {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MapData {
+    pub width: usize,
+    pub height: usize,
+    pub tiles: Vec<Vec<TileType>>,
+    pub objects: Vec<MapObject>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MapObject {
+    pub id: String,
+    pub obj_type: ObjectType,
+    pub x: f64, // Grid X
+    pub y: f64, // Grid Y
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+pub enum ObjectType {
+    House,
+    Blacksmith,
+    Tavern,
+    GuildHall,
+    Lamp,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum TileType {
     Grass,
@@ -37,16 +62,6 @@ impl TileType {
         match self {
             TileType::Grass | TileType::Stone | TileType::Portal => true,
             TileType::Water | TileType::Wall => false,
-        }
-    }
-    
-    pub fn color(&self) -> &str {
-        match self {
-            TileType::Grass => "#228b22",
-            TileType::Stone => "#808080",
-            TileType::Water => "#1e90ff",
-            TileType::Wall => "#654321",
-            TileType::Portal => "#ff00ff",
         }
     }
 }

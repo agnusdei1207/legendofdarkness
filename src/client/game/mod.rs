@@ -1,6 +1,6 @@
 use leptos::prelude::*;
-use crate::models::*;
-use crate::components::*;
+use crate::shared::domain::*;
+use crate::client::components::*;
 
 mod canvas;
 mod systems;

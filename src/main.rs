@@ -17,6 +17,9 @@ async fn main() {
         .await
         .expect("Failed to connect to database");
     
+    // DB Pool 전역 초기화
+    legend::server::db::init_db(pool.clone());
+    
     // 마이그레이션 실행
     sqlx::migrate!("./migrations")
         .run(&pool)

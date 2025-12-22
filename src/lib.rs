@@ -1,13 +1,13 @@
-pub mod app;
-pub mod game;
-pub mod components;
-pub mod models;
-pub mod domain;
+pub mod client;
+pub mod server;
+pub mod shared;
 
-use wasm_bindgen::prelude::wasm_bindgen;
+use leptos::prelude::*;
 
-#[wasm_bindgen]
-pub fn main() {
-    console_error_panic_hook::set_once();
-    leptos::mount_to_body(app::App);
+#[component]
+pub fn App() -> impl IntoView {
+    // ... logic to show login or game ...
+    view! {
+        // Router will handle /login vs /game
+    }
 }

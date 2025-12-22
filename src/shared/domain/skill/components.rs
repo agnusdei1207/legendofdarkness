@@ -1,6 +1,6 @@
 use leptos::prelude::*;
-use crate::domain::skill::models::Skill;
-use crate::domain::skill::server::get_skills;
+use crate::shared::domain::skill::models::Skill;
+use crate::shared::domain::skill::server::get_skills;
 
 #[component]
 pub fn SkillWindow(

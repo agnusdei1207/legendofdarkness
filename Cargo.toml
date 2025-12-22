@@ -1,16 +1,21 @@
 [package]
 name = "legend"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-axum = { version = "0.7", optional = true } # leptos 0.7/0.8 typically uses axum 0.7
+axum = { version = "0.7", optional = true }
 console_error_panic_hook = "0.1"
 console_log = "1"
 leptos = { version = "0.8", features = ["nightly"] }
+rand = { version = "0.8", features = ["small_rng"] }
+getrandom = { version = "0.2", features = ["js"] }
+bcrypt = "0.15"
+jsonwebtoken = "9"
+chrono = { version = "0.4", features = ["serde"] }
 leptos_axum = { version = "0.8", optional = true }
 leptos_meta = { version = "0.8" }
 leptos_router = { version = "0.8" }

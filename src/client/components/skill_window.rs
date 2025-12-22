@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use crate::models::Player;
+use crate::shared::domain::Player;
 use crate::domain::skill::components::SkillWindow as DomainSkillWindow;
 
 #[component]
