@@ -1,7 +1,6 @@
 //! Monster API handlers
 
 use axum::{extract::Extension, response::Json};
-use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::shared::domain::monster::MonsterDataDto;

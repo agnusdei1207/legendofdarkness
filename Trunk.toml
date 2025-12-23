@@ -1,9 +1,7 @@
 [build]
 target = "index.html"
 dist = "dist"
-
-[[features]]
-enabled = ["wasm"]
+features = ["wasm"]
 
 [serve]
 address = "127.0.0.1"
