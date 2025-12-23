@@ -1,4 +1,4 @@
-//! Server module - SSR feature only
+//! Server module - Server feature only
 
 pub mod auth;
 

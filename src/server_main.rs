@@ -1,7 +1,7 @@
 //! Legend API Server - Pure Axum REST API
 //!
-//! Build: cargo build --features ssr
-//! Run: cargo run --features ssr
+//! Build: cargo build --features server
+//! Run: cargo run --features server
 
 #[cfg(feature = "server")]
 #[tokio::main]

@@ -1,6 +1,6 @@
 //! Authentication handlers - Axum REST API
 //!
-//! SSR feature only
+//! Server feature only
 
 #[cfg(feature = "server")]
 use axum::{Json, Extension};
@@ -8,7 +8,7 @@ use axum::{Json, Extension};
 use sqlx::PgPool;
 
 use serde::{Deserialize, Serialize};
-use crate::shared::domain::player::Player;
+use crate::shared::domain::Player;
 
 // Request/Response DTOs
 #[derive(Debug, Deserialize)]
@@ -37,7 +37,7 @@ pub struct RegisterResponse {
     pub message: String,
 }
 
-// --- SSR Handlers ---
+// --- Server Handlers ---
 
 #[cfg(feature = "server")]
 pub async fn login_handler(
