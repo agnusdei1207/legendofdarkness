@@ -140,12 +140,13 @@ pub struct MonsterData {
 
 /// DTO for receiving monster data from API
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 pub struct MonsterDataDto {
     pub id: i32,
     pub name: String,
     pub level: i32,
     pub hp_max: i32,
-    pub mp_max: Option<i32>,
+    pub mp_max: i32,
     pub attack_min: i32,
     pub attack_max: i32,
     pub defense: i32,

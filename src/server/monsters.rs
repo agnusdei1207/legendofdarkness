@@ -4,25 +4,7 @@ use axum::{extract::Extension, response::Json};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-/// MonsterData DTO from database
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct MonsterDataDto {
-    pub id: i32,
-    pub name: String,
-    pub level: i32,
-    pub hp_max: i32,
-    pub mp_max: i32,
-    pub attack_min: i32,
-    pub attack_max: i32,
-    pub defense: i32,
-    pub exp_reward: i32,
-    pub gold_min: i32,
-    pub gold_max: i32,
-    pub sprite_path: Option<String>,
-    pub ai_type: Option<String>,
-    pub sprite_type: Option<String>,
-    pub sprite_size: Option<String>,
-}
+use crate::shared::domain::monster::MonsterDataDto;
 
 /// Get all monster definitions from database
 pub async fn get_monsters(
