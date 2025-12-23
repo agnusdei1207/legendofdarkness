@@ -1,5 +1,3 @@
-//! Game World Systems - Player, Monsters, Combat
-
 use bevy::prelude::*;
 use super::components::*;
 use super::resources::*;
@@ -7,6 +5,17 @@ use crate::shared::domain::{Direction, MonsterAIType, PlayerClass};
 use crate::shared::domain::character::models::Player;
 use crate::shared::domain::monster::{Monster, MonsterData, SpriteSize};
 use crate::shared::domain::shared::models::Position;
+
+const ISO_CHART_WIDTH: f32 = 64.0;
+const ISO_CHART_HEIGHT: f32 = 32.0;
+
+/// Projects logical grid coordinates (x, y) to screen isometric coordinates (x, y)
+/// Darkages/Legend of Darkness style 2:1 ratio.
+fn project_iso(grid_x: f32, grid_y: f32) -> Vec2 {
+    let x = (grid_x - grid_y) * (ISO_CHART_WIDTH / 2.0);
+    let y = (grid_x + grid_y) * -(ISO_CHART_HEIGHT / 2.0);
+    Vec2::new(x, y)
+}
 
 // ============ Color Constants ============
 
@@ -21,43 +30,83 @@ const MP_BAR_FG: Color = Color::srgb(0.1, 0.3, 0.8);
 
 pub fn spawn_game_world(
     mut commands: Commands,
-    config: Res<GameConfig>,
+    asset_server: Res<AssetServer>,
 ) {
-    let tile_size = config.tile_size;
-    let map_width = 30;
-    let map_height = 20;
+    // Millres Layout (16x16)
+    let layout = [
+        "GGGGGGSSSSGGGGGG", // 0
+        "GGWWGSSSSGGWWWGG", // 1
+        "GGDWGSSSSGWDDWGG", // 2
+        "GGGGGGSSSSGGGGGG", // 3
+        "SSSSSSSSSSSSSSSS", // 4
+        "SSSSSFFFSSSSSSSS", // 5
+        "SSSSSFFFSSSSSSSS", // 6
+        "SSSSSFFFSSSSSSSS", // 7
+        "SSSSSSSSSSSSSSSS", // 8
+        "GGGGGGSSSSGGGGGG", // 9
+        "GWWGGSSSSGGWWWWG", // 10
+        "GWDDGSSSSGWWDDWG", // 11
+        "GGGGGGSSSSGGGGGG", // 12
+        "GGGGGGSSSSGGGGGG", // 13
+        "GGGGGGSSSSGGGGGG", // 14
+        "GGGGGGSSSSGGGGGG", // 15
+    ];
+
+    // let texture_handle = asset_server.load("assets/tiles/ground/tileset.png");
     
-    // Spawn ground tiles
-    for x in 0..map_width {
-        for y in 0..map_height {
+    for (y, row) in layout.iter().enumerate() {
+        for (x, char) in row.chars().enumerate() {
+            let tile_type = match char {
+                'G' => TileType::Grass,
+                'S' => TileType::Stone,
+                'F' => TileType::Fountain,
+                'W' => TileType::Wall,
+                'D' => TileType::Door,
+                _ => TileType::Grass,
+            };
+
+            let color = match tile_type {
+                TileType::Grass => Color::srgb(0.12, 0.18, 0.12), // Deep murky green
+                TileType::Stone => Color::srgb(0.22, 0.22, 0.24), // Cold grey stone
+                TileType::Fountain => Color::srgb(0.25, 0.35, 0.45), // Dark mystical water
+                TileType::Wall => Color::srgb(0.18, 0.15, 0.12), // Ancient dark wood/stone
+                TileType::Door => Color::srgb(0.3, 0.15, 0.08), // Dark mahogany
+            };
+
+            let iso_pos = project_iso(x as f32, y as f32);
+            
             commands.spawn((
                 Sprite {
-                    color: GRASS_COLOR,
-                    custom_size: Some(Vec2::new(tile_size, tile_size)),
+                    color,
+                    custom_size: Some(Vec2::new(ISO_CHART_WIDTH, ISO_CHART_HEIGHT)),
                     ..default()
                 },
-                Transform::from_xyz(
-                    x as f32 * tile_size - (map_width as f32 * tile_size / 2.0),
-                    y as f32 * tile_size - (map_height as f32 * tile_size / 2.0),
-                    0.0,
-                ),
-                Tile,
+                Transform::from_xyz(iso_pos.x, iso_pos.y, -iso_pos.y / 1000.0), // Y-Sorting base
+                TileComponent { tile_type },
+                GridPosition { x: x as i32, y: y as i32 },
             ));
         }
     }
     
+    let spawn_pos = project_iso(8.0, 8.0);
+
     // Spawn player
     commands.spawn((
         Sprite {
             color: PLAYER_COLOR,
-            custom_size: Some(Vec2::new(48.0, 48.0)),
+            custom_size: Some(Vec2::new(32.0, 48.0)),
             ..default()
         },
-        Transform::from_xyz(0.0, 0.0, 10.0),
+        Transform::from_xyz(spawn_pos.x, spawn_pos.y, 10.0),
         PlayerComponent,
         Player::new("Player".to_string(), PlayerClass::Warrior),
         Facing::default(),
-        Velocity::default(),
+        GridPosition { x: 8, y: 8 },
+        TargetGridPosition { x: 8, y: 8 },
+        MovementProgress {
+            timer: Timer::from_seconds(0.2, TimerMode::Once),
+            start_pos: Vec2::new(8.0, 8.0),
+        },
         AnimationState::default(),
         CombatState::default(),
         CameraTarget,
@@ -65,21 +114,44 @@ pub fn spawn_game_world(
     
     // Spawn some monsters
     let monster_positions = vec![
-        (200.0, 100.0, "슬라임", 1),
-        (-150.0, 200.0, "슬라임", 1),
-        (300.0, -100.0, "고블린", 3),
-        (-250.0, -150.0, "스켈레톤", 5),
+        (3, 3, "슬라임", 1),
+        (3, 13, "슬라임", 1),
+        (13, 3, "고블린", 3),
+        (13, 13, "스켈레톤", 5),
     ];
     
     for (x, y, name, level) in monster_positions {
-        spawn_monster(&mut commands, Vec2::new(x, y), name, level);
+        spawn_monster(&mut commands, x, y, name, level);
     }
     
+    // Spawn NPCs (Shopkeeper and Innkeeper)
+    spawn_npc(&mut commands, 2, 2, "여관 주인", InteractionType::NpcChat("따뜻한 침대가 준비되어 있습니다.".to_string()));
+    spawn_npc(&mut commands, 12, 11, "상점 주인", InteractionType::NpcChat("무엇을 도와드릴까요?".to_string()));
+
     // Spawn HUD
     spawn_hud(&mut commands);
 }
 
-fn spawn_monster(commands: &mut Commands, position: Vec2, name: &str, level: i32) {
+fn spawn_npc(commands: &mut Commands, x: i32, y: i32, name: &str, interaction: InteractionType) {
+    let iso_pos = project_iso(x as f32, y as f32);
+    commands.spawn((
+        Sprite {
+            color: Color::srgb(0.7, 0.7, 0.2), // Yellowish for NPCs
+            custom_size: Some(Vec2::new(32.0, 48.0)),
+            ..default()
+        },
+        Transform::from_xyz(iso_pos.x, iso_pos.y, 5.0),
+        GridPosition { x, y },
+        TargetGridPosition { x, y },
+        Interactable {
+            message: name.to_string(),
+            interaction_type: interaction,
+        },
+        Facing::default(),
+    ));
+}
+
+fn spawn_monster(commands: &mut Commands, grid_x: i32, grid_y: i32, name: &str, level: i32) {
     let monster_data = MonsterData {
         id: 0,
         name: name.to_string(),
@@ -92,35 +164,41 @@ fn spawn_monster(commands: &mut Commands, position: Vec2, name: &str, level: i32
         gold_min: 5 * level,
         gold_max: 15 * level,
         ai_type: MonsterAIType::Aggressive,
-        detection_range: 150.0,
-        attack_range: 40.0,
-        move_speed: 50.0,
+        detection_range: 5.0, // In tiles
+        attack_range: 1.0,    // In tiles
+        move_speed: 1.0,
         sprite_path: "".to_string(),
         sprite_type: "slime".to_string(),
         sprite_size: SpriteSize::Small,
     };
 
-    let monster = Monster::new(&monster_data, Position::new(position.x as f64, position.y as f64));
-    
+    let monster = Monster::new(&monster_data, Position::new(grid_x as f64, grid_y as f64));
+    let iso_pos = project_iso(grid_x as f32, grid_y as f32);
+
     commands.spawn((
         Sprite {
             color: MONSTER_COLOR,
             custom_size: Some(Vec2::new(32.0, 32.0)),
             ..default()
         },
-        Transform::from_xyz(position.x, position.y, 5.0),
+        Transform::from_xyz(iso_pos.x, iso_pos.y, 5.0),
         MonsterComponent,
         monster,
         MonsterAI {
             ai_type: MonsterAIType::Aggressive,
-            detection_range: 150.0,
-            attack_range: 40.0,
-            move_speed: 50.0,
+            detection_range: 5.0,
+            attack_range: 1.0,
+            move_speed: 0.4, // Seconds per tile
             target: None,
-            spawn_position: position,
+            spawn_position: Vec2::new(grid_x as f32, grid_y as f32),
+        },
+        GridPosition { x: grid_x, y: grid_y },
+        TargetGridPosition { x: grid_x, y: grid_y },
+        MovementProgress {
+            timer: Timer::from_seconds(0.4, TimerMode::Once),
+            start_pos: Vec2::new(grid_x as f32, grid_y as f32),
         },
         Facing::default(),
-        Velocity::default(),
         AnimationState::default(),
     ));
 }
@@ -213,51 +291,83 @@ fn spawn_hud(commands: &mut Commands) {
 
 pub fn player_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>,
-    config: Res<GameConfig>,
-    mut query: Query<(&mut Transform, &mut Velocity, &mut Facing), With<PlayerComponent>>,
+    mut query: Query<(&GridPosition, &mut TargetGridPosition, &mut Facing), With<PlayerComponent>>,
 ) {
-    if let Ok((mut transform, mut velocity, mut facing)) = query.get_single_mut() {
-        let mut direction = Vec2::ZERO;
-        
-        // WASD and Arrow keys
-        if keyboard_input.pressed(KeyCode::KeyW) || keyboard_input.pressed(KeyCode::ArrowUp) {
-            direction.y += 1.0;
-            facing.direction = Direction::Up;
+    if let Ok((grid_pos, mut target_pos, mut facing)) = query.get_single_mut() {
+        // Only allow new movement if we have reached the target
+        if grid_pos.x == target_pos.x && grid_pos.y == target_pos.y {
+            let mut move_dir = IVec2::ZERO;
+            
+            if keyboard_input.pressed(KeyCode::KeyW) || keyboard_input.pressed(KeyCode::ArrowUp) {
+                move_dir.y -= 1;
+                facing.direction = Direction::Up;
+            } else if keyboard_input.pressed(KeyCode::KeyS) || keyboard_input.pressed(KeyCode::ArrowDown) {
+                move_dir.y += 1;
+                facing.direction = Direction::Down;
+            } else if keyboard_input.pressed(KeyCode::KeyA) || keyboard_input.pressed(KeyCode::ArrowLeft) {
+                move_dir.x -= 1;
+                facing.direction = Direction::Left;
+            } else if keyboard_input.pressed(KeyCode::KeyD) || keyboard_input.pressed(KeyCode::ArrowRight) {
+                move_dir.x += 1;
+                facing.direction = Direction::Right;
+            }
+
+            if move_dir != IVec2::ZERO {
+                target_pos.x = grid_pos.x + move_dir.x;
+                target_pos.y = grid_pos.y + move_dir.y;
+            }
         }
-        if keyboard_input.pressed(KeyCode::KeyS) || keyboard_input.pressed(KeyCode::ArrowDown) {
-            direction.y -= 1.0;
-            facing.direction = Direction::Down;
+    }
+}
+
+/// Smoothly interpolates entities between grid positions
+pub fn character_grid_movement(
+    time: Res<Time>,
+    mut query: Query<(
+        &mut Transform,
+        &mut GridPosition,
+        &mut TargetGridPosition,
+        &mut MovementProgress,
+        &mut Sprite,
+    )>,
+) {
+    for (mut transform, mut grid_pos, target_pos, mut progress, mut sprite) in &mut query {
+        if grid_pos.x != target_pos.x || grid_pos.y != target_pos.y {
+            progress.timer.tick(time.delta());
+            
+            let t = progress.timer.fraction();
+            let start_iso = project_iso(grid_pos.x as f32, grid_pos.y as f32);
+            let end_iso = project_iso(target_pos.x as f32, target_pos.y as f32);
+            
+            let current_pos = start_iso.lerp(end_iso, t);
+            transform.translation.x = current_pos.x;
+            transform.translation.y = current_pos.y;
+            
+            // Y-Sorting: Z depends on Y
+            transform.translation.z = -current_pos.y / 1000.0 + 10.0; // +10 offset for characters
+
+            if progress.timer.finished() {
+                grid_pos.x = target_pos.x;
+                grid_pos.y = target_pos.y;
+                progress.timer.reset();
+                progress.start_pos = Vec2::new(grid_pos.x as f32, grid_pos.y as f32);
+            }
+        } else {
+            // Snap to grid just in case
+            let iso = project_iso(grid_pos.x as f32, grid_pos.y as f32);
+            transform.translation.x = iso.x;
+            transform.translation.y = iso.y;
+            transform.translation.z = -iso.y / 1000.0 + 10.0;
         }
-        if keyboard_input.pressed(KeyCode::KeyA) || keyboard_input.pressed(KeyCode::ArrowLeft) {
-            direction.x -= 1.0;
-            facing.direction = Direction::Left;
-        }
-        if keyboard_input.pressed(KeyCode::KeyD) || keyboard_input.pressed(KeyCode::ArrowRight) {
-            direction.x += 1.0;
-            facing.direction = Direction::Right;
-        }
-        
-        // Normalize for diagonal movement
-        if direction != Vec2::ZERO {
-            direction = direction.normalize();
-        }
-        
-        velocity.x = direction.x * config.player_speed;
-        velocity.y = direction.y * config.player_speed;
-        
-        // Apply movement
-        transform.translation.x += velocity.x * time.delta_secs();
-        transform.translation.y += velocity.y * time.delta_secs();
     }
 }
 
 pub fn player_animation(
     time: Res<Time>,
-    mut query: Query<(&Velocity, &mut AnimationState, &mut Sprite), With<PlayerComponent>>,
+    mut query: Query<(&GridPosition, &TargetGridPosition, &mut AnimationState, &mut Sprite), With<PlayerComponent>>,
 ) {
-    for (velocity, mut anim, mut sprite) in &mut query {
-        let is_moving = velocity.x.abs() > 0.1 || velocity.y.abs() > 0.1;
+    for (grid_pos, target_pos, mut anim, mut sprite) in &mut query {
+        let is_moving = grid_pos.x != target_pos.x || grid_pos.y != target_pos.y;
         
         if is_moving {
             anim.timer.tick(time.delta());
@@ -265,9 +375,9 @@ pub fn player_animation(
                 anim.current_frame = (anim.current_frame + 1) % anim.frame_count;
             }
             
-            // Simple animation: slightly change color based on frame
-            let brightness = 0.3 + (anim.current_frame as f32 * 0.05);
-            sprite.color = Color::srgb(brightness, 0.5, 0.8);
+            // simple bobbing
+            let bob = (anim.current_frame as f32 * 0.1).sin() * 2.0;
+            sprite.color = Color::srgb(0.3, 0.5, 0.8);
         } else {
             sprite.color = Color::srgb(0.3, 0.5, 0.8);
         }
@@ -295,133 +405,163 @@ pub fn camera_follow(
 // ============ Monster Systems ============
 
 pub fn monster_ai(
-    time: Res<Time>,
-    player_query: Query<(Entity, &Transform), With<PlayerComponent>>,
+    player_query: Query<&GridPosition, With<PlayerComponent>>,
     mut monster_query: Query<
-        (&mut Transform, &mut MonsterAI, &mut Velocity, &mut Facing),
+        (&GridPosition, &mut TargetGridPosition, &mut MonsterAI, &mut Facing),
         (With<MonsterComponent>, Without<PlayerComponent>),
     >,
 ) {
-    let Ok((player_entity, player_transform)) = player_query.get_single() else {
+    let Ok(player_grid_pos) = player_query.get_single() else {
         return;
     };
     
-    let player_pos = player_transform.translation.truncate();
-    
-    for (mut transform, mut ai, mut velocity, mut facing) in &mut monster_query {
-        let monster_pos = transform.translation.truncate();
-        let distance = monster_pos.distance(player_pos);
-        
-        match ai.ai_type {
-            MonsterAIType::Aggressive => {
-                if distance < ai.detection_range && distance > ai.attack_range {
-                    // Move towards player
-                    let direction = (player_pos - monster_pos).normalize();
-                    velocity.x = direction.x * ai.move_speed;
-                    velocity.y = direction.y * ai.move_speed;
-                    
-                    // Set facing direction
-                    if direction.x.abs() > direction.y.abs() {
-                        facing.direction = if direction.x > 0.0 { Direction::Right } else { Direction::Left };
-                    } else {
-                        facing.direction = if direction.y > 0.0 { Direction::Up } else { Direction::Down };
+    for (grid_pos, mut target_pos, mut ai, mut facing) in &mut monster_query {
+        // Only move if currently at a grid position
+        if grid_pos.x == target_pos.x && grid_pos.y == target_pos.y {
+            let dx = player_grid_pos.x - grid_pos.x;
+            let dy = player_grid_pos.y - grid_pos.y;
+            let distance = ((dx.pow(2) + dy.pow(2)) as f32).sqrt();
+            
+            match ai.ai_type {
+                MonsterAIType::Aggressive => {
+                    if distance < ai.detection_range && distance > ai.attack_range {
+                        // Move towards player (simple pathfinding)
+                        let move_x = if dx.abs() > dy.abs() { dx.signum() } else { 0 };
+                        let move_y = if dx.abs() <= dy.abs() { dy.signum() } else { 0 };
+                        
+                        target_pos.x = grid_pos.x + move_x;
+                        target_pos.y = grid_pos.y + move_y;
+
+                        // Set facing
+                        if move_x > 0 { facing.direction = Direction::Right; }
+                        else if move_x < 0 { facing.direction = Direction::Left; }
+                        else if move_y > 0 { facing.direction = Direction::Down; }
+                        else if move_y < 0 { facing.direction = Direction::Up; }
+                    } else if distance > ai.detection_range {
+                        // Return to spawn or wander (simple return)
+                        let sx = ai.spawn_position.x as i32 - grid_pos.x;
+                        let sy = ai.spawn_position.y as i32 - grid_pos.y;
+                        if sx != 0 || sy != 0 {
+                            target_pos.x = grid_pos.x + sx.signum();
+                            target_pos.y = grid_pos.y + sy.signum();
+                        }
                     }
-                    
-                    ai.target = Some(player_entity);
-                } else if distance <= ai.attack_range {
-                    // Stop and attack
-                    velocity.x = 0.0;
-                    velocity.y = 0.0;
-                } else {
-                    // Return to spawn
-                    let spawn_distance = monster_pos.distance(ai.spawn_position);
-                    if spawn_distance > 10.0 {
-                        let direction = (ai.spawn_position - monster_pos).normalize();
-                        velocity.x = direction.x * ai.move_speed * 0.5;
-                        velocity.y = direction.y * ai.move_speed * 0.5;
-                    } else {
-                        velocity.x = 0.0;
-                        velocity.y = 0.0;
-                    }
-                    ai.target = None;
                 }
-            }
-            MonsterAIType::Passive | MonsterAIType::Defensive => {
-                // Passive monsters don't move
-                velocity.x = 0.0;
-                velocity.y = 0.0;
+                _ => {}
             }
         }
-        
-        // Apply movement
-        transform.translation.x += velocity.x * time.delta_secs();
-        transform.translation.y += velocity.y * time.delta_secs();
     }
 }
 
 // ============ Combat System ============
 
-pub fn combat_system(
+pub fn interaction_system(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>,
-    mut player_query: Query<(&Transform, &mut Player, &mut CombatState), With<PlayerComponent>>,
-    mut monster_query: Query<
-        (Entity, &Transform, &mut Monster),
-        (With<MonsterComponent>, Without<PlayerComponent>),
-    >,
-    mut commands: Commands,
+    player_query: Query<(&GridPosition, &Facing), With<PlayerComponent>>,
+    interactable_query: Query<(&GridPosition, &Interactable)>,
+    tile_query: Query<(&GridPosition, &TileComponent)>,
 ) {
-    let Ok((player_transform, mut player, mut combat_state)) = player_query.get_single_mut() else {
+    if !keyboard_input.just_pressed(KeyCode::KeyE) && !keyboard_input.just_pressed(KeyCode::Enter) {
         return;
+    }
+
+    let Ok((player_pos, facing)) = player_query.get_single() else { return; };
+    
+    // Check tile in front of player
+    let (dx, dy) = match facing.direction {
+        Direction::Up => (0, -1),
+        Direction::Down => (0, 1),
+        Direction::Left => (-1, 0),
+        Direction::Right => (1, 0),
     };
     
-    // Update attack cooldown
-    combat_state.attack_timer.tick(time.delta());
-    
-    // Space to attack
-    if keyboard_input.just_pressed(KeyCode::Space) && combat_state.attack_timer.finished() {
-        combat_state.is_attacking = true;
-        combat_state.attack_timer.reset();
-        
-        let player_pos = player_transform.translation.truncate();
-        
-        // Find nearest monster in attack range
-        let attack_range = 60.0;
-        let mut closest_monster: Option<(Entity, f32)> = None;
-        
-        for (entity, monster_transform, _) in &monster_query {
-            let distance = player_pos.distance(monster_transform.translation.truncate());
-            if distance < attack_range {
-                if closest_monster.is_none() || distance < closest_monster.unwrap().1 {
-                    closest_monster = Some((entity, distance));
+    let target_x = player_pos.x + dx;
+    let target_y = player_pos.y + dy;
+
+    // 1. Check for NPCs/Interactables in front
+    for (npc_pos, interactable) in &interactable_query {
+        if npc_pos.x == target_x && npc_pos.y == target_y {
+            match &interactable.interaction_type {
+                InteractionType::NpcChat(msg) => {
+                    println!("💬 {}: \"{}\"", interactable.message, msg);
                 }
+                _ => {}
+            }
+            return;
+        }
+    }
+
+    // 2. Check for Doors/Portals at current or target position
+    for (tile_pos, tile) in &tile_query {
+        if tile_pos.x == target_x && tile_pos.y == target_y {
+            if tile.tile_type == TileType::Door {
+                println!("🚪 건물 안으로 들어갑니다... (맵 전환 보류)");
+                return;
             }
         }
-        
-        // Attack the closest monster
-        if let Some((target_entity, _)) = closest_monster {
-            if let Ok((_, _, mut monster)) = monster_query.get_mut(target_entity) {
-                let damage = player.combat_stats.attack_max.max(1);
+    }
+}
+
+pub fn skill_system(
+    time: Res<Time>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut player_query: Query<(&GridPosition, &Facing, &mut Player), With<PlayerComponent>>,
+    mut monster_query: Query<(Entity, &GridPosition, &mut Monster), With<MonsterComponent>>,
+    mut commands: Commands,
+) {
+    let Ok((player_pos, facing, mut player)) = player_query.get_single_mut() else { return; };
+
+    // Skill 1: Continuous Strike (Single target, high damage)
+    if keyboard_input.just_pressed(KeyCode::Digit1) {
+        if player.combat_stats.mp < 10 {
+            println!("❌ 마나가 부족합니다!");
+            return;
+        }
+
+        let (dx, dy) = match facing.direction {
+            Direction::Up => (0, -1),
+            Direction::Down => (0, 1),
+            Direction::Left => (-1, 0),
+            Direction::Right => (1, 0),
+        };
+
+        let tx = player_pos.x + dx;
+        let ty = player_pos.y + dy;
+
+        println!("🔥 연공(Continuous Strike) 발동!");
+        player.combat_stats.mp -= 10;
+
+        for (entity, m_pos, mut monster) in &mut monster_query {
+            if m_pos.x == tx && m_pos.y == ty {
+                let damage = player.combat_stats.attack_max * 2;
                 monster.hp -= damage;
-                
-                println!("⚔️ {}에게 {} 데미지!", monster.name, damage);
-                
-                if monster.hp <= 0 {
-                    // Monster died
-                    let exp = monster.exp_reward;
-                    let gold = rand::random::<i32>().abs() % (monster.gold_max - monster.gold_min + 1) + monster.gold_min;
-                    
-                    player.add_exp(exp as i64);
-                    player.gold += gold as i64;
-                    
-                    println!("💀 {} 처치! +{} EXP, +{} Gold", monster.name, exp, gold);
-                    
-                    commands.entity(target_entity).despawn();
-                }
+                println!("💥 {}에게 {} 연공 데미지!", monster.name, damage);
+                if monster.hp <= 0 { commands.entity(entity).despawn(); }
+                break;
             }
         }
-    } else {
-        combat_state.is_attacking = false;
+    }
+
+    // Skill 2: Whirlwind (AOE around player)
+    if keyboard_input.just_pressed(KeyCode::Digit2) {
+        if player.combat_stats.mp < 20 {
+            println!("❌ 마나가 부족합니다!");
+            return;
+        }
+
+        println!("🌀 훨윈드(Whirlwind) 발동!");
+        player.combat_stats.mp -= 20;
+
+        for (entity, m_pos, mut monster) in &mut monster_query {
+            let dx = (player_pos.x - m_pos.x).abs();
+            let dy = (player_pos.y - m_pos.y).abs();
+            if dx <= 1 && dy <= 1 {
+                let damage = player.combat_stats.attack_max + 5;
+                monster.hp -= damage;
+                println!("🌪️ {}에게 {} 범위 데미지!", monster.name, damage);
+                if monster.hp <= 0 { commands.entity(entity).despawn(); }
+            }
+        }
     }
 }
 
@@ -429,7 +569,7 @@ pub fn combat_system(
 
 pub fn cleanup_game_world(
     mut commands: Commands,
-    tiles: Query<Entity, With<Tile>>,
+    tiles: Query<Entity, With<TileComponent>>,
     players: Query<Entity, With<PlayerComponent>>,
     monsters: Query<Entity, With<MonsterComponent>>,
     hud: Query<Entity, With<super::components::HudUI>>,

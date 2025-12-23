@@ -51,10 +51,12 @@ impl Plugin for LegendGamePlugin {
             .add_systems(OnEnter(GameState::Playing), game::spawn_game_world)
             .add_systems(Update, (
                 game::player_movement,
+                game::character_grid_movement,
                 game::player_animation,
                 game::camera_follow,
                 game::monster_ai,
-                game::combat_system,
+                game::skill_system,
+                game::interaction_system,
                 ui::update_hud,
             ).run_if(in_state(GameState::Playing)))
             .add_systems(OnExit(GameState::Playing), game::cleanup_game_world);
