@@ -78,15 +78,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Adminer for DB management
-  adminer:
-    image: adminer
-    container_name: legend-adminer
-    ports:
-      - "8081:8080"
-    depends_on:
-      - db
-
 volumes:
   cargo-cache:
   target-cache:

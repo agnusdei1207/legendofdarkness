@@ -26,7 +26,8 @@
     "innkeeper": "Innkeeper",
     "innkeeper_msg": "A warm bed is ready for you.",
     "shopkeeper": "Shopkeeper",
-    "shopkeeper_msg": "How can I help you?"
+    "shopkeeper_msg": "How can I help you?",
+    "gold": "Gold"
   },
   "skills": {
     "bash_name": "Continuous Strike",

@@ -26,7 +26,8 @@
     "innkeeper": "여관 주인",
     "innkeeper_msg": "따뜻한 침대가 준비되어 있습니다.",
     "shopkeeper": "상점 주인",
-    "shopkeeper_msg": "무엇을 도와드릴까요?"
+    "shopkeeper_msg": "무엇을 도와드릴까요?",
+    "gold": "골드"
   },
   "skills": {
     "bash_name": "연공",

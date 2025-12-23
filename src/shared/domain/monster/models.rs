@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use crate::shared::domain::shared::models::{Position, Direction};
 
 /// Sprite size for monsters - determines frame dimensions
@@ -58,11 +59,27 @@ pub struct Monster {
     pub sprite_type: String,
     pub sprite_size: SpriteSize,
     
+    // 메타데이터
+    pub description: String,
+    pub metadata: Option<Value>,
+    
     // 전투 상태
     pub target_player_id: Option<String>,
     pub is_attacking: bool,
     pub last_attack_time: f64,
     pub attack_cooldown: f64,
+    
+    // 루팅 정보
+    pub loot_table: Vec<LootDrop>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
+pub struct LootDrop {
+    pub item_id: i32,
+    pub probability: f64,
+    pub min_quantity: i32,
+    pub max_quantity: i32,
 }
 
 impl Monster {
@@ -89,11 +106,44 @@ impl Monster {
             move_speed: monster_data.move_speed,
             sprite_type: monster_data.sprite_type.clone(),
             sprite_size: monster_data.sprite_size,
+            description: monster_data.description.clone(),
+            metadata: monster_data.metadata.clone(),
             target_player_id: None,
             is_attacking: false,
             last_attack_time: 0.0,
             attack_cooldown: 1000.0,
+            loot_table: monster_data.loot_table.clone(),
         }
+    }
+    
+    /// Calculate loot when monster dies
+    /// Returns (gold_reward, item_rewards)
+    pub fn calculate_loot(&self) -> (i32, Vec<(i32, i32)>) {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        
+        // 1. Gold (Random between min/max)
+        let gold = if self.gold_max > self.gold_min {
+            rng.gen_range(self.gold_min..=self.gold_max)
+        } else {
+            self.gold_min
+        };
+        
+        // 2. Items (Based on probability)
+        let mut dropped_items = Vec::new();
+        for drop in &self.loot_table {
+            let roll: f64 = rng.r#gen();
+            if roll <= drop.probability {
+                let quantity = if drop.max_quantity > drop.min_quantity {
+                    rng.gen_range(drop.min_quantity..=drop.max_quantity)
+                } else {
+                    drop.min_quantity
+                };
+                dropped_items.push((drop.item_id, quantity));
+            }
+        }
+        
+        (gold, dropped_items)
     }
     
     pub fn take_damage(&mut self, damage: i32) {
@@ -137,6 +187,9 @@ pub struct MonsterData {
     pub sprite_path: String,
     pub sprite_type: String,
     pub sprite_size: SpriteSize,
+    pub description: String,
+    pub metadata: Option<Value>,
+    pub loot_table: Vec<LootDrop>,
 }
 
 /// DTO for receiving monster data from API
@@ -158,6 +211,13 @@ pub struct MonsterDataDto {
     pub ai_type: Option<String>,
     pub sprite_type: Option<String>,
     pub sprite_size: Option<String>,
+    pub detection_range: Option<f64>,
+    pub attack_range: Option<f64>,
+    pub move_speed: Option<f64>,
+    pub description: Option<String>,
+    pub metadata: Option<Value>,
+    #[cfg_attr(feature = "server", sqlx(default, skip))]
+    pub loot: Option<Vec<LootDrop>>,
 }
 
 impl MonsterDataDto {
@@ -170,17 +230,15 @@ impl MonsterDataDto {
             _ => MonsterAIType::Passive,
         };
         
-        // Default values based on AI type
-        let (detection_range, attack_range, move_speed) = match ai_type {
-            MonsterAIType::Aggressive => (250.0, 55.0, 110.0),
-            MonsterAIType::Defensive => (200.0, 50.0, 100.0),
-            MonsterAIType::Passive => (150.0, 40.0, 80.0),
-        };
+        // No more hardcoding! Use values from DB if available, otherwise safe defaults.
+        let detection_range = self.detection_range.unwrap_or(150.0);
+        let attack_range = self.attack_range.unwrap_or(40.0);
+        let move_speed = self.move_speed.unwrap_or(80.0);
         
-        // Sprite type from DB (no hardcoding!)
+        // Sprite type from DB
         let sprite_type = self.sprite_type.unwrap_or_else(|| "slime".to_string());
         
-        // Sprite size from DB (no hardcoding!)
+        // Sprite size from DB
         let sprite_size = self.sprite_size
             .as_deref()
             .map(SpriteSize::from)
@@ -209,6 +267,9 @@ impl MonsterDataDto {
             sprite_path,
             sprite_type,
             sprite_size,
+            description: self.description.unwrap_or_default(),
+            metadata: self.metadata,
+            loot_table: self.loot.unwrap_or_default(),
         }
     }
 }

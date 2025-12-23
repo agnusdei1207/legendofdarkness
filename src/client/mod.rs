@@ -21,12 +21,13 @@ impl Plugin for LegendGamePlugin {
             // Game states
             .init_state::<GameState>()
             
-            // Resources
+            // Resources (Global)
             .insert_resource(resources::GameConfig::default())
             .insert_resource(resources::GameAssets::default())
             .insert_resource(resources::SelectedClass::default())
             .insert_resource(resources::SkillData::default())
             .insert_resource(resources::I18nResource::default())
+            .insert_resource(resources::MonsterDefinitions::default())
             
             // Startup systems
             .add_systems(Startup, (

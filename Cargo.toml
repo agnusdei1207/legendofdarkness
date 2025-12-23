@@ -5,7 +5,7 @@ edition = "2024"
 
 [lib]
 name = "legend_client"
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 
 [[bin]]
 name = "legend-api"

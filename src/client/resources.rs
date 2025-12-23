@@ -1,6 +1,8 @@
 //! Game Resources
 
 use bevy::prelude::*;
+use std::collections::HashMap;
+use crate::shared::domain::monster::MonsterData;
 
 /// Game configuration
 #[derive(Resource)]
@@ -39,6 +41,12 @@ pub struct SelectedClass {
 #[derive(Resource, Default)]
 pub struct SkillData {
     pub skills: Vec<crate::shared::domain::skill::models::Skill>,
+}
+
+/// Monster definitions fetched from DB
+#[derive(Resource, Default)]
+pub struct MonsterDefinitions {
+    pub definitions: HashMap<String, MonsterData>,
 }
 
 /// Internationalization resource

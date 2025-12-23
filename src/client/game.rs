@@ -3,7 +3,7 @@ use super::components::*;
 use super::resources::*;
 use crate::shared::domain::{Direction, MonsterAIType, PlayerClass};
 use crate::shared::domain::character::models::Player;
-use crate::shared::domain::monster::{Monster, MonsterData, SpriteSize};
+use crate::shared::domain::monster::Monster;
 use crate::shared::domain::skill::models::Skill;
 use crate::shared::domain::shared::models::Position;
 
@@ -35,6 +35,7 @@ pub fn spawn_game_world(
     _asset_server: Res<AssetServer>,
     i18n: Res<I18nResource>,
     assets: Res<GameAssets>,
+    monster_defs: Res<MonsterDefinitions>,
 ) {
     // ... existing tile spawning ...
     
@@ -117,16 +118,16 @@ pub fn spawn_game_world(
         CameraTarget,
     ));
     
-    // Spawn some monsters
+    // Spawn some monsters (Using names from DB)
     let monster_positions = vec![
-        (3, 3, "monsters.slime", 1),
-        (3, 13, "monsters.slime", 1),
-        (13, 3, "monsters.goblin", 3),
-        (13, 13, "monsters.skeleton", 5),
+        (3, 3, "Giant Rat"),
+        (3, 13, "Vampire Bat"),
+        (13, 3, "Slime"), 
+        (13, 13, "Slime"),
     ];
     
-    for (x, y, name, level) in monster_positions {
-        spawn_monster(&mut commands, x, y, name, level, &i18n);
+    for (x, y, name) in monster_positions {
+        spawn_monster(&mut commands, x, y, name, &i18n, &monster_defs);
     }
     
     // Spawn NPCs (Shopkeeper and Innkeeper)
@@ -156,28 +157,27 @@ fn spawn_npc(commands: &mut Commands, x: i32, y: i32, name: &str, interaction: I
     ));
 }
 
-fn spawn_monster(commands: &mut Commands, grid_x: i32, grid_y: i32, name: &str, level: i32, i18n: &I18nResource) {
-    let monster_data = MonsterData {
-        id: 0,
-        name: i18n.t(name),
-        level,
-        max_hp: 30 + level * 10,
-        attack_min: 2 + level,
-        attack_max: 5 + level,
-        defense: level,
-        exp_reward: 10 * level,
-        gold_min: 5 * level,
-        gold_max: 15 * level,
-        ai_type: MonsterAIType::Aggressive,
-        detection_range: 5.0, // In tiles
-        attack_range: 1.0,    // In tiles
-        move_speed: 1.0,
-        sprite_path: "".to_string(),
-        sprite_type: "slime".to_string(),
-        sprite_size: SpriteSize::Small,
+fn spawn_monster(
+    commands: &mut Commands, 
+    grid_x: i32, 
+    grid_y: i32, 
+    name_key: &str, 
+    _i18n: &I18nResource,
+    monster_defs: &MonsterDefinitions,
+) {
+    // Look up monster definition
+    let Some(data) = monster_defs.definitions.get(name_key) else {
+        println!("❌ Failed to spawn monster: {} (Not found in DB)", name_key);
+        return;
     };
 
-    let monster = Monster::new(&monster_data, Position::new(grid_x as f64, grid_y as f64));
+    // Create a clone of data to modify instance specific fields if needed
+    // But Monster::new takes &MonsterData and creates an instance.
+    // The MonsterData contains 'name' which is the DB name (e.g. "Slime").
+    // If we want localized name, we might update it here.
+    // But Monster::new copies data.name.
+    
+    let monster = Monster::new(data, Position::new(grid_x as f64, grid_y as f64));
     let iso_pos = project_iso(grid_x as f32, grid_y as f32);
 
     commands.spawn((
@@ -190,10 +190,10 @@ fn spawn_monster(commands: &mut Commands, grid_x: i32, grid_y: i32, name: &str, 
         MonsterComponent,
         monster,
         MonsterAI {
-            ai_type: MonsterAIType::Aggressive,
-            detection_range: 5.0,
-            attack_range: 1.0,
-            move_speed: 0.4, // Seconds per tile
+            ai_type: data.ai_type,
+            detection_range: data.detection_range as f32,
+            attack_range: data.attack_range as f32,
+            move_speed: data.move_speed as f32,
             target: None,
             spawn_position: Vec2::new(grid_x as f32, grid_y as f32),
         },
@@ -429,9 +429,13 @@ pub fn monster_ai(
             let dy = player_grid_pos.y - grid_pos.y;
             let distance = ((dx.pow(2) + dy.pow(2)) as f32).sqrt();
             
+            // Convert pixel-based range to grid-based range (rough estimation)
+            let detection_grid_range = ai.detection_range as f64 / ISO_CHART_WIDTH as f64;
+            let attack_grid_range = 1.1; // Close range
+            
             match ai.ai_type {
                 MonsterAIType::Aggressive => {
-                    if distance < ai.detection_range && distance > ai.attack_range {
+                    if distance < detection_grid_range as f32 && distance > attack_grid_range {
                         // Move towards player (simple pathfinding)
                         let move_x = if dx.abs() > dy.abs() { dx.signum() } else { 0 };
                         let move_y = if dx.abs() <= dy.abs() { dy.signum() } else { 0 };
@@ -583,9 +587,28 @@ pub fn skill_system(
                         for (entity, m_pos, mut monster) in &mut monster_query {
                             if m_pos.x == tx && m_pos.y == ty {
                                 let damage = skill.base_value + (player.combat_stats.attack_max / 2);
-                                monster.hp -= damage;
+                                monster.take_damage(damage);
                                 println!("💥 {}에게 {} {} 데미지!", monster.name, skill.name, damage);
-                                if monster.hp <= 0 { commands.entity(entity).despawn(); }
+                                
+                                if monster.is_dead() { 
+                                    // Handle Loot and Rewards
+                                    let (gold_reward, _item_rewards) = monster.calculate_loot();
+                                    player.gold += gold_reward as i64;
+                                    player.exp += monster.exp_reward as i64;
+                                    
+                                    println!("💰 {} {} 획득! (현재: {})", gold_reward, i18n.t("ui.gold"), player.gold);
+                                    println!("📈 {} 경험치 획득! (현재: {})", monster.exp_reward, player.exp);
+                                    
+                                    // Level Up Check
+                                    if player.exp >= player.exp_to_next_level {
+                                        player.level += 1;
+                                        player.exp -= player.exp_to_next_level;
+                                        player.exp_to_next_level += 100; // Simplified scale
+                                        println!("🎉 레벨 업! 현재 레벨: {}", player.level);
+                                    }
+
+                                    commands.entity(entity).despawn(); 
+                                }
                                 break;
                             }
                         }
