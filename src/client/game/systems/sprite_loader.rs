@@ -102,9 +102,8 @@ impl SpriteSheetInfo {
         }
     }
 
-    /// 보스용 (128x128)
-    #[allow(dead_code)]
-    pub fn boss() -> Self {
+    /// 보스용 (128x128) - Lv 99+
+    pub fn boss_monster() -> Self {
         Self {
             frame_width: 128.0,
             frame_height: 128.0,

@@ -14,7 +14,6 @@ pub use app::App;
 #[cfg(feature = "csr")]
 #[wasm_bindgen::prelude::wasm_bindgen(start)]
 pub fn start() {
-    use leptos::prelude::*;
     use wasm_bindgen::JsCast;
     
     console_error_panic_hook::set_once();
@@ -25,5 +24,5 @@ pub fn start() {
     let doc = web_sys::window().unwrap().document().unwrap();
     let root = doc.get_element_by_id("app").unwrap();
     
-    leptos::mount::mount_to(root.unchecked_into::<web_sys::HtmlElement>(), App);
+    let _ = leptos::mount::mount_to(root.unchecked_into::<web_sys::HtmlElement>(), App);
 }

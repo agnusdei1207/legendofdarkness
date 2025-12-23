@@ -11,7 +11,7 @@ pub mod shared;
 
 // Re-export commonly used types
 pub use character::models::{Player, PlayerClass, StatType};
-pub use monster::{Monster, MonsterData, MonsterAIType};
+pub use monster::{Monster, MonsterData, MonsterDataDto, MonsterAIType, SpriteSize};
 pub use item::models::{Item, ItemType, EquipmentSlot};
 pub use skill::models::Skill;
 pub use map::*;

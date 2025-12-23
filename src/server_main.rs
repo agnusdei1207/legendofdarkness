@@ -48,7 +48,9 @@ async fn main() {
     let api_routes = Router::new()
         .route("/health", get(health_check))
         .route("/login", post(legend_client::server::auth::login_handler))
-        .route("/register", post(legend_client::server::auth::register_handler));
+        .route("/register", post(legend_client::server::auth::register_handler))
+        .route("/monsters", get(legend_client::server::monsters::get_monsters))
+        .route("/monsters/{id}", get(legend_client::server::monsters::get_monster_by_id));
     
     // Main Router
     let app = Router::new()

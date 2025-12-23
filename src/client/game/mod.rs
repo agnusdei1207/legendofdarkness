@@ -15,6 +15,27 @@ mod systems;
 pub use canvas::*;
 pub use systems::*;
 
+/// Fetch monster data from API
+async fn fetch_monsters() -> Vec<MonsterDataDto> {
+    match gloo_net::http::Request::get("/api/monsters")
+        .send()
+        .await
+    {
+        Ok(response) => {
+            if response.ok() {
+                response.json().await.unwrap_or_default()
+            } else {
+                log::warn!("Failed to fetch monsters: {}", response.status());
+                Vec::new()
+            }
+        }
+        Err(e) => {
+            log::warn!("Network error fetching monsters: {:?}", e);
+            Vec::new()
+        }
+    }
+}
+
 #[component]
 pub fn GameView() -> impl IntoView {
     // 게임 상태
@@ -30,71 +51,70 @@ pub fn GameView() -> impl IntoView {
     // 키보드 입력
     let (keys_pressed, set_keys_pressed) = signal(std::collections::HashSet::<String>::new());
     
-    // 게임 초기화
+    // 게임 초기화 - 한 번만 실행
+    let initialized = std::rc::Rc::new(std::cell::Cell::new(false));
+    let initialized_clone = initialized.clone();
+    
     Effect::new(move |_| {
-        let initial_monsters = vec![
-            Monster::new(
-                &MonsterData {
-                    id: 1,
-                    name: "슬라임".to_string(),
-                    level: 1,
-                    max_hp: 30,
-                    attack_min: 2,
-                    attack_max: 4,
-                    defense: 1,
-                    exp_reward: 5,
-                    gold_min: 2,
-                    gold_max: 5,
-                    ai_type: MonsterAIType::Passive,
-                    detection_range: 150.0,
-                    attack_range: 40.0,
-                    move_speed: 80.0,
-                    sprite_path: "/assets/monsters/slime/spritesheet.png".to_string(),
-                },
-                Position::new(300.0, 200.0),
-            ),
-            Monster::new(
-                &MonsterData {
-                    id: 2,
-                    name: "파란 슬라임".to_string(),
-                    level: 2,
-                    max_hp: 45,
-                    attack_min: 3,
-                    attack_max: 6,
-                    defense: 2,
-                    exp_reward: 8,
-                    gold_min: 3,
-                    gold_max: 8,
-                    ai_type: MonsterAIType::Passive,
-                    detection_range: 180.0,
-                    attack_range: 45.0,
-                    move_speed: 90.0,
-                    sprite_path: "/assets/monsters/slime/spritesheet.png".to_string(),
-                },
-                Position::new(500.0, 350.0),
-            ),
-            Monster::new(
-                &MonsterData {
-                    id: 3,
-                    name: "고블린".to_string(),
-                    level: 6,
-                    max_hp: 110,
-                    attack_min: 13,
-                    attack_max: 20,
-                    defense: 8,
-                    exp_reward: 25,
-                    gold_min: 15,
-                    gold_max: 30,
-                    ai_type: MonsterAIType::Aggressive,
-                    detection_range: 250.0,
-                    attack_range: 55.0,
-                    move_speed: 110.0,
-                    sprite_path: "/assets/monsters/goblin/spritesheet.png".to_string(),
-                },
-                Position::new(600.0, 250.0),
-            ),
-        ];
-        set_monsters.set(initial_monsters);
+        if initialized_clone.get() {
+            return;
+        }
+        initialized_clone.set(true);
+        
+        // Fetch monsters from API
+        leptos::task::spawn_local(async move {
+            log::info!("🎮 Fetching monsters from API...");
+            let monster_dtos = fetch_monsters().await;
+            
+            if monster_dtos.is_empty() {
+                log::warn!("No monsters received from API, using fallback");
+                // Fallback: Create a simple slime if API fails
+                let fallback_monster = Monster::new(
+                    &MonsterData {
+                        id: 1,
+                        name: "슬라임".to_string(),
+                        level: 1,
+                        max_hp: 30,
+                        attack_min: 2,
+                        attack_max: 4,
+                        defense: 1,
+                        exp_reward: 5,
+                        gold_min: 2,
+                        gold_max: 5,
+                        ai_type: MonsterAIType::Passive,
+                        detection_range: 150.0,
+                        attack_range: 40.0,
+                        move_speed: 80.0,
+                        sprite_path: "/assets/monsters/slime/spritesheet.png".to_string(),
+                        sprite_type: "slime".to_string(),
+                        sprite_size: SpriteSize::Small,
+                    },
+                    Position::new(300.0, 200.0),
+                );
+                set_monsters.set(vec![fallback_monster]);
+            } else {
+                log::info!("✅ Loaded {} monsters from database", monster_dtos.len());
+                
+                // Convert DTOs to MonsterData and spawn monsters at random positions
+                let mut rng_seed = 42u32;
+                let initial_monsters: Vec<Monster> = monster_dtos
+                    .into_iter()
+                    .take(5) // Limit to 5 monsters for initial spawn
+                    .map(|dto| {
+                        // Simple pseudo-random position generation
+                        rng_seed = rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
+                        let x = 200.0 + (rng_seed % 400) as f64;
+                        rng_seed = rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
+                        let y = 150.0 + (rng_seed % 300) as f64;
+                        
+                        let monster_data = dto.into_monster_data();
+                        Monster::new(&monster_data, Position::new(x, y))
+                    })
+                    .collect();
+                
+                set_monsters.set(initial_monsters);
+            }
+        });
         
         window_event_listener(ev::keydown, move |e: web_sys::KeyboardEvent| {
             let key = e.key();

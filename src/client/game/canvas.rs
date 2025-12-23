@@ -12,7 +12,7 @@ use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::CanvasRenderingContext2d;
-use crate::shared::domain::*;
+use crate::shared::domain::{*, SpriteSize};
 use crate::client::game::systems::{
     AnimationState, AnimationCalculator, SpriteSheetInfo, TileRenderer,
     character_path, monster_path, tileset_path, buildings_path, decorations_path
@@ -73,15 +73,16 @@ pub fn GameCanvas(
         load_image(path, set_player_sheet);
     });
     
-    // 몬스터 스프라이트시트 로딩
+    // 몬스터 스프라이트시트 로딩 (DB에서 sprite_type 사용)
     Effect::new(move |_| {
         let current_monsters = monsters.get();
         let mut sheets = monster_sheets.get();
         
         for monster in current_monsters.iter() {
-            let monster_type = get_monster_type(&monster.name);
-            if let std::collections::hash_map::Entry::Vacant(e) = sheets.entry(monster_type.clone()) {
-                let path = monster_path(&monster_type);
+            // Use sprite_type from database - NO HARDCODING!
+            let sprite_type = &monster.sprite_type;
+            if let std::collections::hash_map::Entry::Vacant(e) = sheets.entry(sprite_type.clone()) {
+                let path = monster_path(sprite_type);
                 if let Ok(img) = web_sys::HtmlImageElement::new() {
                     img.set_src(&path);
                     e.insert(SendWrapper::new(img));
@@ -91,9 +92,19 @@ pub fn GameCanvas(
         set_monster_sheets.set(sheets);
     });
 
-    // 게임 루프
+    // 게임 루프 - 한 번만 실행되도록 함
+    let game_loop_started = std::rc::Rc::new(std::cell::Cell::new(false));
+    let game_loop_started_clone = game_loop_started.clone();
+    
     Effect::new(move |_| {
+        // 이미 시작되었으면 무시
+        if game_loop_started_clone.get() {
+            return;
+        }
+        
         if let Some(canvas) = canvas_ref.get() {
+            game_loop_started_clone.set(true);
+            
             let ctx: CanvasRenderingContext2d = canvas
                 .get_context("2d")
                 .unwrap()
@@ -116,9 +127,9 @@ pub fn GameCanvas(
                 last_time = current_time;
                 
                 if delta_time > 0.0 && delta_time < 0.1 {
-                    // 입력 처리
-                    let keys = keys_pressed.get();
-                    let mut p = player.get();
+                    // 입력 처리 - untracked로 signal 추적 방지
+                    let keys = keys_pressed.get_untracked();
+                    let mut p = player.get_untracked();
                     let speed = 200.0 * delta_time;
                     let mut new_x = p.position.x;
                     let mut new_y = p.position.y;
@@ -156,13 +167,13 @@ pub fn GameCanvas(
                     render_game(RenderContext {
                         ctx: &ctx,
                         current_time,
-                        player: player.get(),
-                        monsters: monsters.get(),
-                        player_sheet: &player_sheet.get(),
-                        monster_sheets: &monster_sheets.get(),
-                        tileset: &tileset.get(),
-                        buildings: &buildings.get(),
-                        decorations: &decorations.get(),
+                        player: player.get_untracked(),
+                        monsters: monsters.get_untracked(),
+                        player_sheet: &player_sheet.get_untracked(),
+                        monster_sheets: &monster_sheets.get_untracked(),
+                        tileset: &tileset.get_untracked(),
+                        buildings: &buildings.get_untracked(),
+                        decorations: &decorations.get_untracked(),
                         map_renderer: &map_renderer,
                         map_data: &map_data,
                     });
@@ -195,19 +206,8 @@ fn load_image(path: String, setter: WriteSignal<Option<SendWrapper<web_sys::Html
     }
 }
 
-fn get_monster_type(name: &str) -> String {
-    match name {
-        "슬라임" | "파란 슬라임" | "독 슬라임" => "slime",
-        "쥐" | "거대 쥐" => "rat",
-        "박쥐" | "흡혈 박쥐" => "bat",
-        "늑대" | "야생 늑대" => "wolf",
-        "스켈레톤" | "스켈레톤 전사" => "skeleton",
-        "고블린" | "고블린 전사" => "goblin",
-        "유령" | "원혼" => "ghost",
-        "드래곤" | "고대 드래곤" => "dragon",
-        _ => "slime",
-    }.to_string()
-}
+// REMOVED: get_monster_type function - all sprite info now comes from database
+// Monster.sprite_type and Monster.sprite_size are loaded from DB via API
 
 pub struct RenderContext<'a> {
     pub ctx: &'a CanvasRenderingContext2d,
@@ -249,8 +249,8 @@ fn render_game(cx: RenderContext) {
         match entity {
             Entity::Player(p) => draw_player_spritesheet(ctx, cx.current_time, p, cx.player_sheet.as_ref().map(|w| &**w)),
             Entity::Monster(m) => {
-                let monster_type = get_monster_type(&m.name);
-                draw_monster_spritesheet(ctx, cx.current_time, m, cx.monster_sheets.get(&monster_type).map(|w| &**w));
+                // Use sprite_type from monster data (from DB) - NO HARDCODING!
+                draw_monster_spritesheet(ctx, cx.current_time, m, cx.monster_sheets.get(&m.sprite_type).map(|w| &**w));
             }
         }
     }
@@ -288,9 +288,13 @@ fn draw_player_spritesheet(ctx: &CanvasRenderingContext2d, current_time: f64, pl
 }
 
 fn draw_monster_spritesheet(ctx: &CanvasRenderingContext2d, current_time: f64, monster: &Monster, sheet: Option<&web_sys::HtmlImageElement>) {
-    let info = if monster.level <= 10 { SpriteSheetInfo::small_monster() }
-               else if monster.level <= 50 { SpriteSheetInfo::medium_monster() }
-               else { SpriteSheetInfo::large_monster() };
+    // Use sprite_size from database - NO HARDCODING!
+    let info = match monster.sprite_size {
+        SpriteSize::Small => SpriteSheetInfo::small_monster(),
+        SpriteSize::Medium => SpriteSheetInfo::medium_monster(),
+        SpriteSize::Large => SpriteSheetInfo::large_monster(),
+        SpriteSize::Boss => SpriteSheetInfo::boss_monster(),
+    };
     
     let state = if monster.is_dead() { AnimationState::Death }
                 else if monster.is_attacking { AnimationState::Attack }

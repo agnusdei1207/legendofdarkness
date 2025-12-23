@@ -1,10 +1,12 @@
 services:
-  # Frontend - CSR with trunk
+  # Frontend - CSR (Client-Side Rendering) with trunk
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.dev
     container_name: legend-frontend
+    # 컨테이너 종료 대기 시간을 주어 볼륨 점유 해제를 돕습니다.
+    stop_grace_period: 3s
     volumes:
       - .:/workspace:cached
       - cargo-cache:/usr/local/cargo/registry
@@ -12,14 +14,17 @@ services:
     ports:
       - "8080:8080"
     working_dir: /workspace
+    depends_on:
+      - api
     command: trunk serve --address 0.0.0.0
 
-  # API Server
+  # API (Application Programming Interface) Server
   api:
     build:
       context: .
       dockerfile: Dockerfile.dev
     container_name: legend-api
+    stop_grace_period: 3s
     volumes:
       - .:/workspace:cached
       - cargo-cache:/usr/local/cargo/registry
@@ -35,7 +40,7 @@ services:
     working_dir: /workspace
     command: cargo run --features server
 
-  # Database
+  # DB (Database)
   db:
     image: postgres:18-alpine
     container_name: legend-db
@@ -52,17 +57,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-  # Database Admin
-  adminer:
-    image: adminer:latest
-    container_name: legend-adminer
-    ports:
-      - "8081:8080"
-    depends_on:
-      - db
-    environment:
-      ADMINER_DEFAULT_SERVER: db
 
 volumes:
   cargo-cache:

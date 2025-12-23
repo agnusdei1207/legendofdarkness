@@ -1,6 +1,32 @@
 use serde::{Deserialize, Serialize};
 use super::Position;
 
+/// Sprite size for monsters - determines frame dimensions
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+pub enum SpriteSize {
+    Small,   // 32x32 (Lv 1-10)
+    Medium,  // 48x48 (Lv 11-50)
+    Large,   // 64x64 (Lv 51-98)
+    Boss,    // 128x128 (Lv 99+)
+}
+
+impl Default for SpriteSize {
+    fn default() -> Self {
+        SpriteSize::Small
+    }
+}
+
+impl From<&str> for SpriteSize {
+    fn from(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "medium" => SpriteSize::Medium,
+            "large" => SpriteSize::Large,
+            "boss" => SpriteSize::Boss,
+            _ => SpriteSize::Small,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Monster {
     pub id: String,
@@ -26,6 +52,10 @@ pub struct Monster {
     pub detection_range: f64,
     pub attack_range: f64,
     pub move_speed: f64,
+    
+    // 스프라이트 정보 (DB에서 로드)
+    pub sprite_type: String,
+    pub sprite_size: SpriteSize,
     
     // 전투 상태
     pub target_player_id: Option<String>,
@@ -56,6 +86,8 @@ impl Monster {
             detection_range: monster_data.detection_range,
             attack_range: monster_data.attack_range,
             move_speed: monster_data.move_speed,
+            sprite_type: monster_data.sprite_type.clone(),
+            sprite_size: monster_data.sprite_size,
             target_player_id: None,
             is_attacking: false,
             last_attack_time: 0.0,
@@ -102,6 +134,81 @@ pub struct MonsterData {
     pub attack_range: f64,
     pub move_speed: f64,
     pub sprite_path: String,
+    pub sprite_type: String,
+    pub sprite_size: SpriteSize,
+}
+
+/// DTO for receiving monster data from API
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MonsterDataDto {
+    pub id: i32,
+    pub name: String,
+    pub level: i32,
+    pub hp_max: i32,
+    pub mp_max: Option<i32>,
+    pub attack_min: i32,
+    pub attack_max: i32,
+    pub defense: i32,
+    pub exp_reward: i32,
+    pub gold_min: i32,
+    pub gold_max: i32,
+    pub sprite_path: Option<String>,
+    pub ai_type: Option<String>,
+    pub sprite_type: Option<String>,
+    pub sprite_size: Option<String>,
+}
+
+impl MonsterDataDto {
+    /// Convert API DTO to game MonsterData
+    /// NO HARDCODING - all data comes from database
+    pub fn into_monster_data(self) -> MonsterData {
+        let ai_type = match self.ai_type.as_deref() {
+            Some("aggressive") => MonsterAIType::Aggressive,
+            Some("defensive") => MonsterAIType::Defensive,
+            _ => MonsterAIType::Passive,
+        };
+        
+        // Default values based on AI type
+        let (detection_range, attack_range, move_speed) = match ai_type {
+            MonsterAIType::Aggressive => (250.0, 55.0, 110.0),
+            MonsterAIType::Defensive => (200.0, 50.0, 100.0),
+            MonsterAIType::Passive => (150.0, 40.0, 80.0),
+        };
+        
+        // Sprite type from DB (no hardcoding!)
+        let sprite_type = self.sprite_type.unwrap_or_else(|| "slime".to_string());
+        
+        // Sprite size from DB (no hardcoding!)
+        let sprite_size = self.sprite_size
+            .as_deref()
+            .map(SpriteSize::from)
+            .unwrap_or_default();
+        
+        // Sprite path from DB or generate from sprite_type
+        let sprite_path = self.sprite_path.unwrap_or_else(|| {
+            format!("/assets/monsters/{}/spritesheet.png", sprite_type)
+        });
+        
+        MonsterData {
+            id: self.id,
+            name: self.name,
+            level: self.level,
+            max_hp: self.hp_max,
+            attack_min: self.attack_min,
+            attack_max: self.attack_max,
+            defense: self.defense,
+            exp_reward: self.exp_reward,
+            gold_min: self.gold_min,
+            gold_max: self.gold_max,
+            ai_type,
+            detection_range,
+            attack_range,
+            move_speed,
+            sprite_path,
+            sprite_type,
+            sprite_size,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
