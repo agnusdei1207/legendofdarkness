@@ -2,6 +2,8 @@
 
 use bevy::prelude::*;
 use crate::shared::domain::{Direction, PlayerClass, MonsterAIType};
+use crate::shared::domain::character::models::Player;
+use crate::shared::domain::monster::Monster;
 
 // ============ Player Components ============
 
@@ -9,52 +11,11 @@ use crate::shared::domain::{Direction, PlayerClass, MonsterAIType};
 #[derive(Component)]
 pub struct PlayerComponent;
 
-/// Player stats component
-#[derive(Component)]
-pub struct PlayerStats {
-    pub level: i32,
-    pub exp: i64,
-    pub exp_to_next: i64,
-    pub hp: i32,
-    pub max_hp: i32,
-    pub mp: i32,
-    pub max_mp: i32,
-    pub attack: i32,
-    pub gold: i64,
-}
-
-impl Default for PlayerStats {
-    fn default() -> Self {
-        Self {
-            level: 1,
-            exp: 0,
-            exp_to_next: 100,
-            hp: 120,
-            max_hp: 120,
-            mp: 60,
-            max_mp: 60,
-            attack: 15,
-            gold: 100,
-        }
-    }
-}
-
 // ============ Monster Components ============
 
 /// Marker component for monster entities
 #[derive(Component)]
-pub struct MonsterComponent {
-    pub name: String,
-}
-
-/// Monster stats
-#[derive(Component)]
-pub struct MonsterStats {
-    pub hp: i32,
-    pub exp_reward: i32,
-    pub gold_min: i32,
-    pub gold_max: i32,
-}
+pub struct MonsterComponent;
 
 /// Monster AI behavior
 #[derive(Component)]

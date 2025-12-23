@@ -5,6 +5,7 @@ use super::components::*;
 use super::resources::*;
 use super::states::GameState;
 use crate::shared::domain::PlayerClass;
+use crate::shared::domain::character::models::Player;
 
 // ============ Color Constants ============
 
@@ -280,33 +281,33 @@ pub fn cleanup_character_select(
 // ============ HUD ============
 
 pub fn update_hud(
-    player_query: Query<&PlayerStats, With<PlayerComponent>>,
+    player_query: Query<&Player, With<PlayerComponent>>,
     mut hp_bar_query: Query<&mut Node, (With<HpBar>, Without<MpBar>, Without<ExpBar>)>,
     mut mp_bar_query: Query<&mut Node, (With<MpBar>, Without<HpBar>, Without<ExpBar>)>,
     mut level_text_query: Query<&mut Text, (With<LevelText>, Without<GoldText>)>,
     mut gold_text_query: Query<&mut Text, (With<GoldText>, Without<LevelText>)>,
 ) {
-    if let Ok(stats) = player_query.get_single() {
+    if let Ok(player) = player_query.get_single() {
         // Update HP bar
         if let Ok(mut node) = hp_bar_query.get_single_mut() {
-            let hp_percent = (stats.hp as f32 / stats.max_hp as f32) * 100.0;
+            let hp_percent = (player.combat_stats.hp as f32 / player.combat_stats.max_hp as f32) * 100.0;
             node.width = Val::Percent(hp_percent);
         }
         
         // Update MP bar
         if let Ok(mut node) = mp_bar_query.get_single_mut() {
-            let mp_percent = (stats.mp as f32 / stats.max_mp as f32) * 100.0;
+            let mp_percent = (player.combat_stats.mp as f32 / player.combat_stats.max_mp as f32) * 100.0;
             node.width = Val::Percent(mp_percent);
         }
         
         // Update level text
         if let Ok(mut text) = level_text_query.get_single_mut() {
-            **text = format!("Lv.{}", stats.level);
+            **text = format!("Lv.{}", player.level);
         }
         
         // Update gold text
         if let Ok(mut text) = gold_text_query.get_single_mut() {
-            **text = format!("💰 {}", stats.gold);
+            **text = format!("💰 {}", player.gold);
         }
     }
 }

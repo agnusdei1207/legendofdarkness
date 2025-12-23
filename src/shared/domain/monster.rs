@@ -28,6 +28,7 @@ impl From<&str> for SpriteSize {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "client", derive(bevy::prelude::Component))]
 pub struct Monster {
     pub id: String,
     pub monster_id: i32,

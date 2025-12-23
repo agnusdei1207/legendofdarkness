@@ -3,7 +3,10 @@
 use bevy::prelude::*;
 use super::components::*;
 use super::resources::*;
-use crate::shared::domain::{Direction, MonsterAIType};
+use crate::shared::domain::{Direction, MonsterAIType, PlayerClass};
+use crate::shared::domain::character::models::Player;
+use crate::shared::domain::monster::{Monster, MonsterData, SpriteSize};
+use crate::shared::domain::shared::models::Position;
 
 // ============ Color Constants ============
 
@@ -52,7 +55,7 @@ pub fn spawn_game_world(
         },
         Transform::from_xyz(0.0, 0.0, 10.0),
         PlayerComponent,
-        PlayerStats::default(),
+        Player::new("Player".to_string(), PlayerClass::Warrior),
         Facing::default(),
         Velocity::default(),
         AnimationState::default(),
@@ -77,7 +80,27 @@ pub fn spawn_game_world(
 }
 
 fn spawn_monster(commands: &mut Commands, position: Vec2, name: &str, level: i32) {
-    let base_hp = 30 + level * 10;
+    let monster_data = MonsterData {
+        id: 0,
+        name: name.to_string(),
+        level,
+        max_hp: 30 + level * 10,
+        attack_min: 2 + level,
+        attack_max: 5 + level,
+        defense: level,
+        exp_reward: 10 * level,
+        gold_min: 5 * level,
+        gold_max: 15 * level,
+        ai_type: MonsterAIType::Aggressive,
+        detection_range: 150.0,
+        attack_range: 40.0,
+        move_speed: 50.0,
+        sprite_path: "".to_string(),
+        sprite_type: "slime".to_string(),
+        sprite_size: SpriteSize::Small,
+    };
+
+    let monster = Monster::new(&monster_data, Position::new(position.x as f64, position.y as f64));
     
     commands.spawn((
         Sprite {
@@ -86,15 +109,8 @@ fn spawn_monster(commands: &mut Commands, position: Vec2, name: &str, level: i32
             ..default()
         },
         Transform::from_xyz(position.x, position.y, 5.0),
-        MonsterComponent {
-            name: name.to_string(),
-        },
-        MonsterStats {
-            hp: base_hp,
-            exp_reward: 10 * level,
-            gold_min: 5 * level,
-            gold_max: 15 * level,
-        },
+        MonsterComponent,
+        monster,
         MonsterAI {
             ai_type: MonsterAIType::Aggressive,
             detection_range: 150.0,
@@ -348,14 +364,14 @@ pub fn monster_ai(
 pub fn combat_system(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    mut player_query: Query<(&Transform, &mut PlayerStats, &mut CombatState), With<PlayerComponent>>,
+    mut player_query: Query<(&Transform, &mut Player, &mut CombatState), With<PlayerComponent>>,
     mut monster_query: Query<
-        (Entity, &Transform, &mut MonsterStats, &MonsterComponent),
-        Without<PlayerComponent>,
+        (Entity, &Transform, &mut Monster),
+        (With<MonsterComponent>, Without<PlayerComponent>),
     >,
     mut commands: Commands,
 ) {
-    let Ok((player_transform, mut player_stats, mut combat_state)) = player_query.get_single_mut() else {
+    let Ok((player_transform, mut player, mut combat_state)) = player_query.get_single_mut() else {
         return;
     };
     
@@ -373,7 +389,7 @@ pub fn combat_system(
         let attack_range = 60.0;
         let mut closest_monster: Option<(Entity, f32)> = None;
         
-        for (entity, monster_transform, _, _) in &monster_query {
+        for (entity, monster_transform, _) in &monster_query {
             let distance = player_pos.distance(monster_transform.translation.truncate());
             if distance < attack_range {
                 if closest_monster.is_none() || distance < closest_monster.unwrap().1 {
@@ -384,32 +400,21 @@ pub fn combat_system(
         
         // Attack the closest monster
         if let Some((target_entity, _)) = closest_monster {
-            if let Ok((_, _, mut monster_stats, monster_component)) = monster_query.get_mut(target_entity) {
-                let damage = player_stats.attack.max(1);
-                monster_stats.hp -= damage;
+            if let Ok((_, _, mut monster)) = monster_query.get_mut(target_entity) {
+                let damage = player.combat_stats.attack_max.max(1);
+                monster.hp -= damage;
                 
-                println!("⚔️ {}에게 {} 데미지!", monster_component.name, damage);
+                println!("⚔️ {}에게 {} 데미지!", monster.name, damage);
                 
-                if monster_stats.hp <= 0 {
+                if monster.hp <= 0 {
                     // Monster died
-                    let exp = monster_stats.exp_reward;
-                    let gold = rand::random::<i32>().abs() % (monster_stats.gold_max - monster_stats.gold_min + 1) + monster_stats.gold_min;
+                    let exp = monster.exp_reward;
+                    let gold = rand::random::<i32>().abs() % (monster.gold_max - monster.gold_min + 1) + monster.gold_min;
                     
-                    player_stats.exp += exp as i64;
-                    player_stats.gold += gold as i64;
+                    player.add_exp(exp as i64);
+                    player.gold += gold as i64;
                     
-                    // Level up check
-                    while player_stats.exp >= player_stats.exp_to_next {
-                        player_stats.exp -= player_stats.exp_to_next;
-                        player_stats.level += 1;
-                        player_stats.exp_to_next = (100.0 * (player_stats.level as f64).powf(1.5)) as i64;
-                        player_stats.max_hp += 20;
-                        player_stats.hp = player_stats.max_hp;
-                        player_stats.attack += 2;
-                        println!("🎉 레벨 업! Lv.{}", player_stats.level);
-                    }
-                    
-                    println!("💀 {} 처치! +{} EXP, +{} Gold", monster_component.name, exp, gold);
+                    println!("💀 {} 처치! +{} EXP, +{} Gold", monster.name, exp, gold);
                     
                     commands.entity(target_entity).despawn();
                 }

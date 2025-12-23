@@ -3,6 +3,7 @@ use crate::shared::domain::shared::models::{Position, Stats, CombatStats, Direct
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "client", derive(bevy::prelude::Component))]
 pub struct Player {
     pub id: String,
     pub username: String,
