@@ -14,7 +14,6 @@ const BLOOD_RED: Color = Color::srgb(0.545, 0.0, 0.0);        // #8b0000
 const MAGIC_PURPLE: Color = Color::srgb(0.290, 0.0, 0.502);   // #4a0080
 const GOLD: Color = Color::srgb(0.855, 0.647, 0.125);         // #daa520
 const TEXT_WHITE: Color = Color::srgb(0.9, 0.9, 0.9);
-const TEXT_GRAY: Color = Color::srgb(0.6, 0.6, 0.6);
 
 // ============ Main Menu ============
 

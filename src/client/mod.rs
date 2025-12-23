@@ -23,8 +23,8 @@ impl Plugin for LegendGamePlugin {
             
             // Resources
             .insert_resource(resources::GameConfig::default())
-            .insert_resource(resources::PlayerData::default())
             .insert_resource(resources::GameAssets::default())
+            .insert_resource(resources::SelectedClass::default())
             
             // Startup systems
             .add_systems(Startup, (

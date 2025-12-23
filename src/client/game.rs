@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use super::components::*;
 use super::resources::*;
-use crate::shared::domain::{Direction, PlayerClass, MonsterAIType};
+use crate::shared::domain::{Direction, MonsterAIType};
 
 // ============ Color Constants ============
 
@@ -18,7 +18,6 @@ const MP_BAR_FG: Color = Color::srgb(0.1, 0.3, 0.8);
 
 pub fn spawn_game_world(
     mut commands: Commands,
-    selected_class: Res<SelectedClass>,
     config: Res<GameConfig>,
 ) {
     let tile_size = config.tile_size;
@@ -39,17 +38,12 @@ pub fn spawn_game_world(
                     y as f32 * tile_size - (map_height as f32 * tile_size / 2.0),
                     0.0,
                 ),
-                Tile {
-                    tile_type: TileType::Grass,
-                    x,
-                    y,
-                },
+                Tile,
             ));
         }
     }
     
     // Spawn player
-    let player_class = selected_class.class.unwrap_or(PlayerClass::Warrior);
     commands.spawn((
         Sprite {
             color: PLAYER_COLOR,
@@ -58,10 +52,7 @@ pub fn spawn_game_world(
         },
         Transform::from_xyz(0.0, 0.0, 10.0),
         PlayerComponent,
-        PlayerStats {
-            class: player_class,
-            ..default()
-        },
+        PlayerStats::default(),
         Facing::default(),
         Velocity::default(),
         AnimationState::default(),
@@ -96,16 +87,10 @@ fn spawn_monster(commands: &mut Commands, position: Vec2, name: &str, level: i32
         },
         Transform::from_xyz(position.x, position.y, 5.0),
         MonsterComponent {
-            monster_id: 1,
             name: name.to_string(),
         },
         MonsterStats {
-            level,
             hp: base_hp,
-            max_hp: base_hp,
-            attack_min: 3 + level,
-            attack_max: 6 + level * 2,
-            defense: 2 + level,
             exp_reward: 10 * level,
             gold_min: 5 * level,
             gold_max: 15 * level,

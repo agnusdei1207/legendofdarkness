@@ -12,7 +12,6 @@ pub struct PlayerComponent;
 /// Player stats component
 #[derive(Component)]
 pub struct PlayerStats {
-    pub class: PlayerClass,
     pub level: i32,
     pub exp: i64,
     pub exp_to_next: i64,
@@ -21,14 +20,12 @@ pub struct PlayerStats {
     pub mp: i32,
     pub max_mp: i32,
     pub attack: i32,
-    pub defense: i32,
     pub gold: i64,
 }
 
 impl Default for PlayerStats {
     fn default() -> Self {
         Self {
-            class: PlayerClass::Warrior,
             level: 1,
             exp: 0,
             exp_to_next: 100,
@@ -37,7 +34,6 @@ impl Default for PlayerStats {
             mp: 60,
             max_mp: 60,
             attack: 15,
-            defense: 10,
             gold: 100,
         }
     }
@@ -48,19 +44,13 @@ impl Default for PlayerStats {
 /// Marker component for monster entities
 #[derive(Component)]
 pub struct MonsterComponent {
-    pub monster_id: i32,
     pub name: String,
 }
 
 /// Monster stats
 #[derive(Component)]
 pub struct MonsterStats {
-    pub level: i32,
     pub hp: i32,
-    pub max_hp: i32,
-    pub attack_min: i32,
-    pub attack_max: i32,
-    pub defense: i32,
     pub exp_reward: i32,
     pub gold_min: i32,
     pub gold_max: i32,
@@ -106,7 +96,6 @@ pub struct AnimationState {
     pub current_frame: usize,
     pub frame_count: usize,
     pub timer: Timer,
-    pub is_playing: bool,
 }
 
 impl Default for AnimationState {
@@ -115,7 +104,6 @@ impl Default for AnimationState {
             current_frame: 0,
             frame_count: 4,
             timer: Timer::from_seconds(0.15, TimerMode::Repeating),
-            is_playing: true,
         }
     }
 }
@@ -125,7 +113,6 @@ impl Default for AnimationState {
 pub struct CombatState {
     pub is_attacking: bool,
     pub attack_timer: Timer,
-    pub target: Option<Entity>,
 }
 
 impl Default for CombatState {
@@ -133,7 +120,6 @@ impl Default for CombatState {
         Self {
             is_attacking: false,
             attack_timer: Timer::from_seconds(1.0, TimerMode::Once),
-            target: None,
         }
     }
 }
@@ -155,7 +141,6 @@ pub struct HudUI;
 /// Button action types
 #[derive(Component, Clone)]
 pub enum ButtonAction {
-    StartGame,
     CharacterSelect,
     SelectClass(PlayerClass),
     ConfirmCharacter,
@@ -187,25 +172,7 @@ pub struct GoldText;
 
 /// Tile component
 #[derive(Component)]
-pub struct Tile {
-    pub tile_type: TileType,
-    pub x: i32,
-    pub y: i32,
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum TileType {
-    Grass,
-    Stone,
-    Water,
-    Wall,
-}
-
-impl TileType {
-    pub fn is_walkable(&self) -> bool {
-        matches!(self, TileType::Grass | TileType::Stone)
-    }
-}
+pub struct Tile;
 
 /// Camera follow target
 #[derive(Component)]

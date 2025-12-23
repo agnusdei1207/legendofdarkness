@@ -10,6 +10,4 @@ pub enum GameState {
     MainMenu,
     CharacterSelect,
     Playing,
-    Paused,
-    GameOver,
 }
