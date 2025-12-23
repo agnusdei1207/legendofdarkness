@@ -1,7 +1,13 @@
-pub mod auth;
-pub mod db;
-pub mod handlers;
+//! Server module - Server feature only
 
-pub use auth::*;
-pub use db::*;
-pub use handlers::*;
+#[cfg(feature = "server")]
+pub mod auth;
+
+#[cfg(feature = "server")]
+pub mod db;
+
+#[cfg(feature = "server")]
+pub mod monsters;
+
+#[cfg(feature = "server")]
+pub mod skills;

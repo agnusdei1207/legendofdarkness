@@ -1,34 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Legend of Darkness M</title>
-    <link rel="stylesheet" href="/style/main.css" />
-    <link rel="manifest" href="/manifest.json" />
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-</head>
-
-<body>
-    <!-- Background Music -->
-    <audio id="bgm" loop>
-        <source src="/assets/bgm/village.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
-
-    <script>
-        // Auto-play attempt on interaction
-        document.addEventListener('click', function () {
-            var bgm = document.getElementById('bgm');
-            if (bgm.paused) {
-                bgm.volume = 0.3;
-                bgm.play().catch(function (e) {
-                    console.log("Audio play failed: " + e);
-                });
-            }
-        }, { once: true });
-    </script>
-</body>
-
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>어둠의전설 M - Legend of Darkness M</title>
+    <link
+      data-trunk
+      rel="rust"
+      href="Cargo.toml"
+      data-bin="legend-game"
+      data-features="wasm"
+    />
+    <link data-trunk rel="copy-dir" href="public/assets" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #0a0a0a;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 100vw;
+      }
+      canvas {
+        display: block;
+      }
+      #loading {
+        color: #3b0000;
+        font-family: sans-serif;
+        font-size: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">Loading Game...</div>
+    <!-- Trunk will automatically inject the script tag here -->
+  </body>
 </html>

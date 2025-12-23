@@ -1,24 +1,25 @@
-FROM rust:1.85-bookworm
+FROM rust:latest
 
-# 시스템 패키지 설치 (clang: ring 크레이트 빌드 필요)
+# Install system dependencies for Bevy
 RUN apt update && apt install -y \
     pkg-config \
-    libssl-dev \
-    postgresql-client \
-    clang \
-    lld \
+    libasound2-dev \
+    libudev-dev \
+    libxkbcommon-dev \
+    libwayland-dev \
+    libx11-dev \
+    libxcursor-dev \
+    libxrandr-dev \
+    libxi-dev \
+    libgl1-mesa-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Rust Nightly 설정 (Leptos 0.8 최적화)
-RUN rustup default nightly
+# Install toolchains and CLI tools
 RUN rustup target add wasm32-unknown-unknown
+RUN cargo install sqlx-cli --no-default-features --features postgres
+RUN cargo install trunk
 
-# Rust 도구 설치
-RUN cargo install cargo-leptos --version 0.2.24 --locked
-RUN cargo install sqlx-cli --no-default-features --features postgres --locked
-
-# 작업 디렉토리
 WORKDIR /workspace
 
-# 기본 명령어
-CMD ["cargo", "leptos", "watch"]
+# Set up cargo caching
+ENV CARGO_HOME=/usr/local/cargo

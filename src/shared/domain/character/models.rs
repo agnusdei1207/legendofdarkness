@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
-use crate::domain::shared::models::{Position, Stats, CombatStats, Direction};
+use crate::shared::domain::shared::models::{Position, Stats, CombatStats, Direction};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "client", derive(bevy::prelude::Component))]
 pub struct Player {
     pub id: String,
-    pub usersname: String,
+    pub username: String,
     pub gender: String, // 'male' or 'female'
     pub class: PlayerClass,
     pub level: i32,
@@ -25,9 +26,7 @@ pub struct Player {
     pub gold: i64,
     pub position: Position,
     pub direction: Direction,
-    
-    // 재화
-    pub gold: i64,
+    pub current_map: String,
     
     // 상태
     pub is_moving: bool,
@@ -51,7 +50,6 @@ impl Player {
             exp: 0,
             exp_to_next_level: 100,
             stats,
-            stat_points: 0,
             stat_points: 0,
             combat_stats,
             equipment: std::collections::HashMap::new(),
@@ -155,6 +153,16 @@ impl PlayerClass {
         }
     }
     
+    pub fn id(&self) -> i32 {
+        match self {
+            PlayerClass::Warrior => 1,
+            PlayerClass::Rogue => 2,
+            PlayerClass::Mage => 3,
+            PlayerClass::Cleric => 4,
+            PlayerClass::MartialArtist => 5,
+        }
+    }
+
     pub fn get_base_stats(&self) -> Stats {
         // Legend of Darkness style roughly
         match self {

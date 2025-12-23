@@ -1,13 +1,11 @@
-pub mod client;
-pub mod server;
+//! Legend of Darkness M - Shared Library
+//!
+//! This crate contains shared code between client and server.
+
 pub mod shared;
 
-use leptos::prelude::*;
+#[cfg(feature = "server")]
+pub mod server;
 
-#[component]
-pub fn App() -> impl IntoView {
-    // ... logic to show login or game ...
-    view! {
-        // Router will handle /login vs /game
-    }
-}
+#[cfg(feature = "client")]
+pub mod client;

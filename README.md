@@ -1,71 +1,27 @@
 # 어둠의전설 M (Legend of Darkness M)
 
-어둠의전설 스타일의 **완전한 온라인 픽셀 RPG 게임**
+넥슨의 어둠의전설(Legend of Darkness) 스타일의 **온라인 픽셀 RPG 게임**
 
-**Rust + Leptos 0.8 + Axum 0.8 + SQLx + PostgreSQL**
+**Rust + Bevy 0.15 + Axum 0.8 + SQLx 0.8 + PostgreSQL 18**
 
-에셋 가이드라인 디자인 가이드 리드미등 싱크 맞추고 서로 중복 내용 없애고 참조할 수 있게 수정하세요. 리펙토링 문서 진행.
+---
 
-axum = { version = "0.7", optional = true }
-이거 안 쓰면 지워주세요 보니까 렙토스 axum 은 쓰는데 그냥 axum 은 쓰는지 모르겠네 버전이 안 맞는 것 같아.
+## 🎮 Bevy란?
 
-axum = { version = "0.7", optional = true }
-console_error_panic_hook = "0.1"
-console_log = "1"
-leptos = { version = "0.8", features = ["nightly"] }
-rand = { version = "0.8", features = ["small_rng"] }
-getrandom = { version = "0.2", features = ["js"] }
-bcrypt = "0.15"
-jsonwebtoken = "9"
+> **Bevy는 네이티브 데스크톱 게임 엔진입니다.**
 
-버전 코드들 빨간줄 뜨는데, 몇몇것들 확인해주세요.
+| 특징          | 설명                                 |
+| ------------- | ------------------------------------ |
+| **실행 방식** | 데스크톱 앱 (Windows/Mac/Linux)      |
+| **빌드 필요** | `cargo build` 후 실행 파일 실행      |
+| **웹 지원**   | WASM 빌드 가능 (별도 설정 필요)      |
+| **장점**      | 게임 루프, 스프라이트, 물리엔진 내장 |
 
-항상 0.8 이상이 최신이므로 반드시 최신을 따라주세요. 항상 안전한 최신버전을 검색하고 그것을 따라주세요.
+---
 
-빌드 테스트 웹 테스트도 시행하세요.게임 실행까지 다 테스트하세요. 감사합니다. 당신은 최고의 해결사 개발자입니다.
+## 🛑 개발 환경 절대 원칙
 
-
-완벽하게 빌드 실행 게임 웹 테스트까지 다 실행하세요. 에셋이 게임처럼 잘보이는지 UI가 노출되는지 등등 웹이나앱처럼 동작할 수 있는지 테스트도 다 거쳐서 디버깅을 실시해주세요.
-
-전체적으로 파일이나 폴더 등 싱크가 맞는지 구조가 맞는지도 확인해주세요.
-
-## 🎮 게임 특징
-
-### 핵심 시스템
-- ✅ **5개 직업**: 전사, 도적, 마법사, 성직자, 무도가
-- ✅ **1서클 시스템**: 레벨 1-11 성장 구간
-- ✅ **틱(Tick) 시스템**: 15초마다 HP/MP 자동 회복 (물약 없음)
-- ✅ **스탯 시스템**: STR, DEX, INT, VIT, WIS
-- ✅ **스킬 시스템**: 직업별 고유 마법/기술
-- ✅ **전투 시스템**: 아이소메트릭(쿼터뷰) 액션, 타겟팅
-- ✅ **몬스터 AI**: 선공/비선공, 추격
-- ✅ **경제 시스템**: 몬스터 골드 드롭, 마을 상점 이용
-- ✅ **아이템 시스템**: 장비 착용 (무기, 갑옷, 악세사리)
-
-### 비주얼 & 테마
-- 🎨 **다크 판타지**: 어둠의전설(Legend of Darkness) 스타일의 묵직하고 어두운 분위기
-- 🎨 **아이소메트릭 뷰**: 90년대 클래식 RPG 시점
-- 🎨 **SD 캐릭터**: 2등신 픽셀 캐릭터 (남/녀 성별 구분)
-- 🎨 **레트로 UI**: 고딕 스타일의 돌 질감 인터페이스
-- 🎨 **폰트**: Press Start 2P (레트로 감성)
-
-## 🛠 기술 스택
-
-| 분류 | 기술 | 버전 |
-|------|------|------|
-| **프론트엔드** | Leptos | 0.8 |
-| **백엔드** | Axum | 0.8 |
-| **데이터베이스** | PostgreSQL | 18 (Alpine) |
-| **ORM** | SQLx | 0.8 |
-| **언어** | Rust | 1.85+ (nightly) |
-| **개발 환경** | Docker Compose | - |
-
-## 📋 필수 요구사항
-
-- Docker
-- Docker Compose
-
-**로컬에 아무것도 설치하지 않아도 됩니다!**
+> **"Host OS에는 Docker만 설치. 단, 게임 클라이언트는 로컬 Rust로 실행."**
 
 ## 🚀 빠른 시작
 
@@ -75,200 +31,189 @@ jsonwebtoken = "9"
 cp .env.example .env
 ```
 
-### 2. 전체 스택 시작
+### 2. 서비스 실행 (웹 게임 + API + DB)
+
+모든 개발 및 실행은 Docker 컨테이너 내에서 이루어집니다.
 
 ```bash
-# 전체 서비스 시작 (DB + 게임 서버)
-docker compose up --build
+docker compose up -d
 ```
 
-### 3. 게임 접속
+접속 정보:
 
-- **게임**: http://localhost:3002
-- **DB 관리**: http://localhost:8081
+- 🎮 **웹 게임 접속**: [http://localhost:8080](http://localhost:8080)
+- 🔌 **API 서버**: [http://localhost:3000](http://localhost:3000)
+- 🗄️ **DB 관리자**: [http://localhost:8081](http://localhost:8081)
 
-### 서비스별 실행
+---
+
+## 🛠️ 개발 및 빌드 가이드 (Dev Container)
+
+개발 환경에 아무것도 설치할 필요 없이 `docker compose` 명령만으로 모든 작업을 수행할 수 있습니다.
+
+### 1. 웹(Web/WASM) 개발 및 실시간 확인
+
+`docker compose up`을 실행하면 이미 웹 서버가 8080 포트에서 실행 중입니다. 코드를 수정하면 자동으로 다시 빌드되어 브라우저에 반영됩니다.
+
+만약 로그를 실시간으로 보거나 독립적으로 실행하고 싶다면:
 
 ```bash
-# DB만 시작
-docker compose up -d db adminer
-
-# 개발 서버 빌드
-docker compose build app
-
-# 개발 서버 실행
-docker compose up app
+docker compose logs -f web
 ```
 
-## 🎯 게임 조작법
+### 2. 네이티브(Native) 빌드
 
-### 이동
-- `W` 또는 `↑` - 위로 이동
-- `S` 또는 `↓` - 아래로 이동
-- `A` 또는 `←` - 왼쪽으로 이동
-- `D` 또는 `→` - 오른쪽으로 이동
-- 대각선 이동 지원 (키 조합)
+데스크톱 실행 파일(Windows/Linux)을 빌드할 때 사용합니다.
 
-### UI 토글
-- `C` - 캐릭터 창 (스탯/정보)
-- `I` - 인벤토리 창
-- `K` - 스킬 창
-- `Space` - 공격 / 상호작용
+```bash
+# 네이티브 바이너리 빌드 (target/debug/legend-game)
+docker compose run --rm game cargo build --bin legend-game --features client
+
+# 릴리즈 빌드 (최적화 버전)
+docker compose run --rm game cargo build --bin legend-game --features client --release
+```
+
+### 3. 데이터베이스 관리 (Migration)
+
+DB 스키마를 변경하거나 데이터를 업데이트할 때 사용합니다.
+
+```bash
+# 새로운 마이그레이션 파일 생성
+docker compose run --rm api sqlx migrate add [이름]
+
+# 마이그레이션 적용
+docker compose run --rm api sqlx migrate run
+```
+
+---
+
+## 🌐 웹 배포용 정적 빌드
+
+최종 배포를 위한 정적 파일(HTML/JS/WASM)을 생성합니다.
+
+```bash
+docker compose run --rm game trunk build --release
+```
+
+빌드 결과물은 `dist/` 폴더에 생성됩니다. 이 폴더의 내용물을 정적 웹 서버(Nginx, S3 등)에 올리면 배포가 완료됩니다.
+
+---
 
 ## 📁 프로젝트 구조
 
 ```
 legend/
 ├── src/
-│   ├── main.rs                 # 서버 엔트리 (Axum 0.8)
-│   ├── lib.rs                  # 라이브러리 엔트리 (WASM)
-│   ├── app.rs                  # Leptos 앱 라우팅
+│   ├── game_main.rs          # 🎮 Bevy 게임 엔트리포인트
+│   ├── server_main.rs        # 🔌 Axum API 서버 엔트리포인트
+│   ├── lib.rs                # 라이브러리 루트
 │   │
-│   ├── domain/                 # 도메인 주도 설계(DDD) 구조
-│   │   ├── character/          # 캐릭터/직업 도메인
-│   │   ├── item/               # 아이템/인벤토리 도메인
-│   │   ├── skill/              # 스킬/마법 도메인
-│   │   ├── map/                # 맵/이동 도메인
-│   │   └── shared/             # 공통 모델 (Stats, Position)
+│   ├── client/               # 🎮 Bevy 게임 클라이언트
+│   │   ├── mod.rs            # LegendGamePlugin (메인 플러그인)
+│   │   ├── states.rs         # GameState (Loading, Menu, Playing...)
+│   │   ├── components.rs     # ECS 컴포넌트들
+│   │   ├── resources.rs      # 게임 리소스들
+│   │   ├── systems.rs        # 카메라, 에셋 로딩
+│   │   ├── ui.rs             # 메뉴, HUD
+│   │   └── game.rs           # 월드, 플레이어, 몬스터, 전투
 │   │
-│   ├── game/                   # 게임 로직 (클라이언트)
-│   │   ├── canvas.rs           # 캔버스 렌더링 (Sprite/Tile)
-│   │   └── mod.rs              # 게임 루프 및 상태 관리
+│   ├── server/               # 🔌 Axum REST API
+│   │   ├── auth.rs           # 로그인/회원가입
+│   │   ├── db.rs             # DB 연결
+│   │   └── monsters.rs       # 몬스터 API
 │   │
-│   └── components/             # UI 컴포넌트
-│       ├── hud.rs              # HUD (HP/MP 바)
-│       ├── inventory_window.rs # 인벤토리 윈도우
-│       └── skill_window.rs     # 스킬 윈도우
+│   └── shared/               # 📦 공용 도메인 모델
+│       └── domain/
+│           ├── character/    # Player, PlayerClass, StatType
+│           ├── monster.rs    # Monster, MonsterAI
+│           ├── item/         # Item, Equipment
+│           ├── skill/        # Skill
+│           └── map.rs        # GameMap, Tile
 │
-├── migrations/                 # DB 마이그레이션 (초기 데이터 포함)
-├── style/
-│   └── main.css                # 다크 판타지 테마 CSS
-│
-└── public/
-    └── assets/                 # 게임 에셋
-        ├── characters/         # 직업별 스프라이트 (남/녀)
-        ├── monsters/           # 몬스터 스프라이트
-        └── inventory_bg.png    # UI 텍스처
+├── public/assets/            # 게임 에셋 (스프라이트, 오디오)
+├── migrations/               # SQLx 마이그레이션
+└── compose.yml               # Docker Compose
 ```
-
-## 🗄️ 데이터베이스 스키마
-
-### 주요 테이블
-
-#### `classes` - 직업
-- 전사, 도적, 마법사, 성직자, 무도가
-- 기본 스탯 정의 (Legend of Darkness 스타일)
-
-#### `players` - 플레이어
-- 닉네임, 성별(Male/Female), 직업
-- 레벨(1-11 서클), 경험치
-- HP/MP (틱 시스템으로 회복)
-
-#### `skills` - 스킬/마법
-- 직업별 고유 기술
-- MP 소모, 데미지 공식
-
-#### `items` - 아이템
-- 무기, 방어구, 악세서리
-- 몬스터 드롭 및 상점 구매
-
-#### `monsters` - 몬스터
-- 다크 판타지 몬스터 (쥐, 박쥐, 스켈레톤, 코볼트...)
-- AI 및 스탯
-
-## 🎨 직업별 특징 (1서클)
-
-### 전사 (Warrior)
-- **특징**: 강인한 체력, 근접 파괴력
-- **주스탯**: STR(힘), CON(체력)
-
-### 도적 (Rogue)
-- **특징**: 기습, 빠른 공격, 크리티컬
-- **주스탯**: DEX(민첩)
-
-### 마법사 (Mage)
-- **특징**: 강력한 원소 마법, 낮은 체력
-- **주스탯**: INT(지력), WIS(지혜)
-
-### 성직자 (Cleric)
-- **특징**: 회복 마법, 보호, 언데드 퇴치
-- **주스탯**: WIS(지혜), INT(지력)
-
-### 무도가 (Martial Artist)
-- **특징**: 맨손 격투, 화려한 연계기
-- **주스탯**: STR(힘), CON(체력), DEX(민첩)
-
-## 💡 개발 팁
-
-### 컨테이너 내부 접속
-
-```bash
-docker exec -it legend-dev bash
-```
-
-### 데이터베이스 마이그레이션
-
-```bash
-# 컨테이너 내부에서
-sqlx migrate run
-```
-
-### 로그 확인
-
-```bash
-docker compose logs -f app
-```
-
-### 빌드만 (프로덕션)
-
-```bash
-cargo leptos build --release
-```
-
-## 🔧 포트 설정
-
-| 서비스 | 포트 | 설명 |
-|--------|------|------|
-| 게임 서버 | 3002 | Leptos SSR |
-| 핫 리로드 | 3003 | 개발 모드 자동 새로고침 |
-| PostgreSQL | 5433 | 데이터베이스 |
-| Adminer | 8081 | DB 관리 도구 |
-
-## 🎯 로드맵
-
-### 다음 업데이트
-
-- [ ] **멀티플레이어**: WebSocket 실시간 동기화
-- [ ] **채팅 시스템**: 플레이어 간 채팅
-- [ ] **파티 시스템**: 파티 구성 및 공유 경험치
-- [ ] **길드 시스템**: 길드 생성 및 길드전
-- [ ] **PVP 시스템**: 플레이어 간 전투
-- [ ] **랭킹 시스템**: 레벨, 재화 랭킹
-- [ ] **거래 시스템**: 플레이어 간 아이템 거래
-- [ ] **이벤트 시스템**: 시간 제한 이벤트
-- [ ] **업적 시스템**: 업적 달성시 보상
-- [ ] **펫 시스템**: 동반 펫
-
-### 기술 개선
-
-- [ ] **에셋 로딩**: 실제 픽셀 스프라이트 시트
-- [ ] **사운드**: BGM 및 효과음
-- [ ] **파티클**: 스킬 이펙트
-- [ ] **애니메이션**: 캐릭터 이동/공격 애니메이션
-- [ ] **맵 에디터**: 맵 제작 도구
-- [ ] **모바일 최적화**: 터치 컨트롤
-
-## 🤝 기여
-
-이슈 및 PR은 언제나 환영합니다!
-
-## 📝 라이선스
-
-이 프로젝트는 학습 및 포트폴리오 목적으로 제작되었습니다.
 
 ---
 
-**Made with 🦀 Rust + ⚡ Leptos 0.8 + 🚀 Axum 0.8 + 🐘 PostgreSQL**
+## 🛠 기술 스택
 
-**어둠의전설의 감성을 현대적인 웹 기술로 재현**
-# legend
+| 분류          | 기술           | 버전                 |
+| ------------- | -------------- | -------------------- |
+| **게임 엔진** | Bevy           | 0.15                 |
+| **백엔드**    | Axum           | 0.8 (REST API)       |
+| **DBMS**      | PostgreSQL     | 18 (Alpine)          |
+| **ORM**       | SQLx           | 0.8                  |
+| **언어**      | Rust           | 1.85+ (Edition 2024) |
+| **인프라**    | Docker Compose | -                    |
+
+---
+
+## 🏗️ 아키텍처
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              Bevy Game Client (Native App)               │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐    │
+│  │ States  │  │   UI    │  │  Game   │  │ Systems │    │
+│  │ Machine │  │ (Menu,  │  │ (World, │  │(Camera, │    │
+│  │         │  │  HUD)   │  │ Combat) │  │ Input)  │    │
+│  └─────────┘  └─────────┘  └─────────┘  └─────────┘    │
+└────────────────────────┬────────────────────────────────┘
+                         │ HTTP (REST API)
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│               Axum REST API (Docker)                     │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐                 │
+│  │  Auth   │  │Monsters │  │  Items  │                 │
+│  │ Handler │  │ Handler │  │ Handler │                 │
+│  └─────────┘  └─────────┘  └─────────┘                 │
+└────────────────────────┬────────────────────────────────┘
+                         │ SQLx
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│                PostgreSQL 18 (Docker)                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 게임 조작법
+
+| 키                       | 동작               |
+| ------------------------ | ------------------ |
+| `W` `A` `S` `D` / 화살표 | 이동 (대각선 지원) |
+| `Space`                  | 공격               |
+| `C`                      | 캐릭터 창 (예정)   |
+| `I`                      | 인벤토리 (예정)    |
+| `K`                      | 스킬 창 (예정)     |
+
+---
+
+## ✨ Leptos → Bevy 마이그레이션 이유
+
+| Leptos (이전)       | Bevy (현재)                   |
+| ------------------- | ----------------------------- |
+| UI 프레임워크       | **게임 엔진**                 |
+| 게임 루프 직접 구현 | 내장 게임 루프                |
+| Canvas 2D 수동 관리 | 스프라이트/렌더링 자동화      |
+| 웹 브라우저만 지원  | **네이티브 + WASM 모두 지원** |
+| 디버깅 어려움       | 풍부한 디버깅 도구            |
+
+---
+
+## 📋 로드맵
+
+- [x] Bevy로 마이그레이션
+- [x] 기본 이동/전투 시스템
+- [x] 메인 메뉴 / 직업 선택
+- [ ] 스프라이트 애니메이션
+- [ ] 멀티플레이어 (WebSocket)
+- [ ] 인벤토리 시스템
+- [ ] 스킬 시스템
+- [ ] WASM 웹 빌드
+
+---
+
+**Made with 🦀 Rust + 🎮 Bevy 0.15 + 🚀 Axum 0.8 + 🐘 PostgreSQL**

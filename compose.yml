@@ -1,30 +1,66 @@
 services:
-  app:
+  # Game Client - Bevy native (for development)
+  # For web builds, use: cargo build --target wasm32-unknown-unknown --features wasm
+  # Web Client - Trunk (WASM)
+  web:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: legend-dev
+    container_name: legend-web
+    stop_grace_period: 3s
     volumes:
       - .:/workspace:cached
       - cargo-cache:/usr/local/cargo/registry
       - target-cache:/workspace/target
     ports:
-      - "3002:3000"
-      - "3003:3001"
+      - "8080:8080"
+    working_dir: /workspace
+    command: trunk serve --address 0.0.0.0
+    depends_on:
+      - api
+
+  # Native Game Build (can still be used for cargo build/run)
+  game:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: legend-game
+    stop_grace_period: 3s
+    volumes:
+      - .:/workspace:cached
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/workspace/target
+    working_dir: /workspace
+    # Native desktop game (X11 forwarding required for display)
+    # Use: docker compose run game cargo run --bin legend-game --features client
+    command: cargo build --bin legend-game --features client
+    profiles: ["native"]
+    depends_on:
+      - api
+
+  # API (Application Programming Interface) Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: legend-api
+    stop_grace_period: 3s
+    volumes:
+      - .:/workspace:cached
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/workspace/target
+    ports:
+      - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://legend:legend@db:5432/legend
-      - LEPTOS_OUTPUT_NAME=legend
-      - LEPTOS_SITE_ROOT=target/site
-      - LEPTOS_SITE_PKG_DIR=pkg
-      - LEPTOS_SITE_ADDR=0.0.0.0:3000
-      - LEPTOS_RELOAD_PORT=3001
       - RUST_LOG=info
     depends_on:
       db:
         condition: service_healthy
     working_dir: /workspace
-    command: cargo leptos watch
+    command: cargo run --bin legend-api --features server
 
+  # DB (Database)
   db:
     image: postgres:18-alpine
     container_name: legend-db
@@ -37,20 +73,10 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U legend" ]
+      test: ["CMD-SHELL", "pg_isready -U legend"]
       interval: 5s
       timeout: 5s
       retries: 5
-
-  adminer:
-    image: adminer:latest
-    container_name: legend-adminer
-    ports:
-      - "8081:8080"
-    depends_on:
-      - db
-    environment:
-      ADMINER_DEFAULT_SERVER: db
 
 volumes:
   cargo-cache:
