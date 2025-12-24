@@ -32,44 +32,58 @@ pub fn setup_camera(mut commands: Commands) {
 /// Load game assets
 pub fn load_assets(
     mut game_assets: ResMut<GameAssets>,
+    mut sprite_lib: ResMut<SpriteLibrary>,
     asset_server: Res<AssetServer>,
 ) {
-    info!("📦 Starting asset loading...");
+    info!("📦 Starting asset loading (WebP & Manifests)...");
 
     // Load default font
     game_assets.ui_font = asset_server.load("fonts/NanumGothic.ttf");
     
     // Load tile atlas
-    game_assets.tile_atlas = Some(asset_server.load("tiles/ground/tileset.png"));
-    game_assets.buildings_atlas = Some(asset_server.load("tiles/buildings/buildings.png"));
+    game_assets.tile_atlas = Some(asset_server.load("tiles/ground/tileset.webp"));
+    game_assets.buildings_atlas = Some(asset_server.load("tiles/buildings/buildings.webp"));
     
     // Load decoration sprites
-    game_assets.torch_sprite = Some(asset_server.load("tiles/decorations/torch.png"));
+    game_assets.torch_sprite = Some(asset_server.load("tiles/decorations/torch.webp"));
     
-    // Load monster sprites
+    // Load monster sprites and create default manifests
     let monster_types = ["rat", "bat", "slime", "wolf", "skeleton", "goblin", "ghost", "dragon"];
     for monster_type in monster_types {
-        let path = format!("monsters/{}/spritesheet.png", monster_type);
+        let path = format!("monsters/{}/spritesheet.webp", monster_type);
         let handle = asset_server.load(&path);
-        game_assets.monster_sprites.insert(monster_type.to_string(), handle);
+        game_assets.monster_sprites.insert(monster_type.to_string(), handle.clone());
+        
+        // Populate library with default manifests for now
+        let size = if monster_type == "dragon" {
+            crate::shared::domain::sprite::MonsterSpriteSize::Large
+        } else {
+            crate::shared::domain::sprite::MonsterSpriteSize::Medium
+        };
+        
+        let manifest = crate::shared::domain::sprite::SpriteManifest::new_monster(monster_type, monster_type, &path, size);
+        sprite_lib.manifests.insert(monster_type.to_string(), manifest);
     }
     
-    // Load character sprites
+    // Load character sprites and create default manifests
     let classes = ["warrior", "rogue", "mage", "cleric", "martial_artist"];
     let genders = ["male", "female"];
     
     for class_name in classes {
         let mut gender_map = HashMap::new();
         for gender in genders {
-            // Prefer folder structure: characters/warrior/male/spritesheet.png
-            // Fallback to characters/warrior/male_spritesheet.png if needed, but let's try strict first
-             let path = format!("characters/{}/{}/spritesheet.png", class_name, gender);
-            // let path = format!("characters/{}/{}_spritesheet.png", class_name, gender);
+            let path = format!("characters/{}/{}/spritesheet.webp", class_name, gender);
             let handle = asset_server.load(&path);
             gender_map.insert(gender.to_string(), handle);
+            
+            let id = format!("{}_{}", class_name, gender);
+            let manifest = crate::shared::domain::sprite::SpriteManifest::new_character(&id, &id, &path);
+            sprite_lib.manifests.insert(id, manifest);
         }
         game_assets.character_sprites.insert(class_name.to_string(), gender_map);
     }
+    
+    sprite_lib.ready = true;
 }
 
 /// Check if assets are loaded and transition to main menu

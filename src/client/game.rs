@@ -97,10 +97,14 @@ pub fn spawn_game_world(
     // =============================================  
     // Spawn Player with sprite or fallback color
     // =============================================
+    // =============================================  
+    // Spawn Player with sprite or fallback color
+    // =============================================
+    let manifest_id = "warrior_male";
     let player_sprite = if let Some(sprite_handle) = assets.get_character_sprite("warrior", "male") {
         Sprite {
             image: sprite_handle,
-            custom_size: Some(Vec2::new(48.0, 64.0)),
+            // custom_size will be set by animation system
             ..default()
         }
     } else {
@@ -123,7 +127,10 @@ pub fn spawn_game_world(
             timer: Timer::from_seconds(0.2, TimerMode::Once),
             start_pos: Vec2::new(8.0, 8.0),
         },
-        AnimationState::default(),
+        super::animation::SpriteAnimator {
+            manifest_id: Some(manifest_id.to_string()),
+            ..default()
+        },
         CombatState::default(),
         ActiveSkills::default(),
         CameraTarget,
@@ -205,7 +212,6 @@ fn spawn_monster(
     let sprite = if let Some(sprite_handle) = assets.get_monster_sprite(&data.sprite_type) {
         Sprite {
             image: sprite_handle,
-            custom_size: Some(sprite_size),
             ..default()
         }
     } else {
@@ -248,7 +254,10 @@ fn spawn_monster(
             start_pos: Vec2::new(grid_x as f32, grid_y as f32),
         },
         Facing::default(),
-        AnimationState::default(),
+        super::animation::SpriteAnimator {
+            manifest_id: Some(data.sprite_type.clone()),
+            ..default()
+        },
     ));
     
     println!("👾 Spawned {} at ({}, {})", name_key, grid_x, grid_y);
@@ -373,6 +382,37 @@ pub fn player_movement(
     }
 }
 
+/// Syncs logical state (movement, facing) to animation state
+pub fn sync_character_animation(
+    mut query: Query<(&GridPosition, &TargetGridPosition, &Facing, &mut super::animation::SpriteAnimator)>,
+) {
+    for (grid_pos, target_pos, facing, mut anim) in &mut query {
+        let is_moving = grid_pos.x != target_pos.x || grid_pos.y != target_pos.y;
+        
+        let new_state = if is_moving {
+            crate::shared::domain::sprite::AnimationState::Walk
+        } else {
+            crate::shared::domain::sprite::AnimationState::Idle
+        };
+
+        if anim.state != new_state {
+            anim.state = new_state;
+            anim.current_frame = 0;
+            anim.timer.reset();
+        }
+
+        // Sync direction
+        let dir = match facing.direction {
+            crate::shared::domain::Direction::Down => crate::shared::domain::sprite::SpriteDirection::Down,
+            crate::shared::domain::Direction::Up => crate::shared::domain::sprite::SpriteDirection::Up,
+            crate::shared::domain::Direction::Left => crate::shared::domain::sprite::SpriteDirection::Left,
+            crate::shared::domain::Direction::Right => crate::shared::domain::sprite::SpriteDirection::Right,
+        };
+        
+        anim.direction = dir;
+    }
+}
+
 /// Smoothly interpolates entities between grid positions
 pub fn character_grid_movement(
     time: Res<Time>,
@@ -381,10 +421,9 @@ pub fn character_grid_movement(
         &mut GridPosition,
         &mut TargetGridPosition,
         &mut MovementProgress,
-        &mut Sprite,
     )>,
 ) {
-    for (mut transform, mut grid_pos, target_pos, mut progress, _) in &mut query {
+    for (mut transform, mut grid_pos, target_pos, mut progress) in &mut query {
         if grid_pos.x != target_pos.x || grid_pos.y != target_pos.y {
             progress.timer.tick(time.delta());
             
@@ -411,28 +450,6 @@ pub fn character_grid_movement(
             transform.translation.x = iso.x;
             transform.translation.y = iso.y;
             transform.translation.z = -iso.y / 1000.0 + 10.0;
-        }
-    }
-}
-
-pub fn player_animation(
-    time: Res<Time>,
-    mut query: Query<(&GridPosition, &TargetGridPosition, &mut AnimationState, &mut Sprite), With<PlayerComponent>>,
-) {
-    for (grid_pos, target_pos, mut anim, mut sprite) in &mut query {
-        let is_moving = grid_pos.x != target_pos.x || grid_pos.y != target_pos.y;
-        
-        if is_moving {
-            anim.timer.tick(time.delta());
-            if anim.timer.just_finished() {
-                anim.current_frame = (anim.current_frame + 1) % anim.frame_count;
-            }
-            
-            // simple bobbing
-            let _bob = (anim.current_frame as f32 * 0.1).sin() * 2.0;
-            sprite.color = Color::srgb(0.3, 0.5, 0.8);
-        } else {
-            sprite.color = Color::srgb(0.3, 0.5, 0.8);
         }
     }
 }

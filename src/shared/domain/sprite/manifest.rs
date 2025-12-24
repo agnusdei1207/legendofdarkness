@@ -12,6 +12,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+#[cfg(feature = "client")]
+use bevy::{asset::Asset, reflect::TypePath};
+
 /// 스프라이트 방향 (어둠의전설 스타일 4방향)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
@@ -131,6 +134,7 @@ impl Default for AnimationSequence {
 
 /// 스프라이트시트 레이아웃 정보
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "client", derive(TypePath))]
 pub struct SpriteLayout {
     /// 이미지 전체 너비 (픽셀)
     pub image_width: u32,
@@ -244,8 +248,9 @@ impl MirrorConfig {
 }
 
 /// 스프라이트 매니페스트 - 하나의 스프라이트시트에 대한 완전한 메타데이터
-/// 이것은 어둠의전설의 EPF/SPF 파일과 유사한 역할을 합니다.
+/// 스프라이트 매니페스트 (스프라이트시트 메타데이터)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "client", derive(Asset, TypePath))]
 pub struct SpriteManifest {
     /// 매니페스트 버전
     #[serde(default = "default_version")]

@@ -30,6 +30,7 @@ impl Plugin for LegendGamePlugin {
             // Resources (Global)
             .insert_resource(resources::GameConfig::default())
             .insert_resource(resources::GameAssets::default())
+            .insert_resource(resources::SpriteLibrary::default())
             .insert_resource(resources::SelectedClass::default())
             .insert_resource(resources::SkillData::default())
             .insert_resource(resources::TextResource::default())
@@ -66,7 +67,7 @@ impl Plugin for LegendGamePlugin {
             .add_systems(Update, (
                 game::player_movement,
                 game::character_grid_movement,
-                game::player_animation,
+                game::sync_character_animation,
                 game::camera_follow,
                 game::monster_ai,
                 game::skill_system,

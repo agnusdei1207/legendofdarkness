@@ -53,23 +53,6 @@ pub struct Velocity {
     pub y: f32,
 }
 
-/// Animation component
-#[derive(Component)]
-pub struct AnimationState {
-    pub current_frame: usize,
-    pub frame_count: usize,
-    pub timer: Timer,
-}
-
-impl Default for AnimationState {
-    fn default() -> Self {
-        Self {
-            current_frame: 0,
-            frame_count: 4,
-            timer: Timer::from_seconds(0.15, TimerMode::Repeating),
-        }
-    }
-}
 
 /// Combat state component
 #[derive(Component)]

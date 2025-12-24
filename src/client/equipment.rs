@@ -7,8 +7,8 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 
 use crate::shared::domain::sprite::{
-    AnchorType, AnimationState, CharacterAnchors, EquipmentRenderer,
-    Point2D, SpriteDirection,
+    AnchorType, CharacterAnchors, EquipmentRenderer,
+    Point2D,
 };
 
 /// 장착된 장비 정보
@@ -40,25 +40,7 @@ impl EquippedItems {
     }
 }
 
-/// 캐릭터 애니메이션 상태 컴포넌트
-#[derive(Component)]
-pub struct CharacterAnimState {
-    pub state: AnimationState,
-    pub direction: SpriteDirection,
-    pub current_frame: usize,
-    pub character_type: String, // "warrior_male", etc.
-}
-
-impl Default for CharacterAnimState {
-    fn default() -> Self {
-        Self {
-            state: AnimationState::Idle,
-            direction: SpriteDirection::Down,
-            current_frame: 0,
-            character_type: "warrior_male".to_string(),
-        }
-    }
-}
+// CharacterAnimState is removed. Use crate::client::animation::AnimationState instead.
 
 /// 장비 스프라이트 마커
 #[derive(Component)]
@@ -99,10 +81,13 @@ impl Default for EquipmentRenderingSystem {
 /// 장비 위치 업데이트 시스템
 pub fn update_equipment_positions(
     equipment_system: Res<EquipmentRenderingSystem>,
-    character_query: Query<(Entity, &Transform, &CharacterAnimState, &EquippedItems)>,
-    mut equipment_query: Query<(&EquipmentSprite, &mut Transform, &mut Sprite), Without<CharacterAnimState>>,
+    character_query: Query<(Entity, &Transform, &crate::client::animation::SpriteAnimator, &EquippedItems)>,
+    mut equipment_query: Query<(&EquipmentSprite, &mut Transform, &mut Sprite), Without<crate::client::animation::SpriteAnimator>>,
 ) {
     for (char_entity, char_transform, anim_state, _equipped) in character_query.iter() {
+        // manifest_id가 없으면 장착 위치를 계산할 수 없음
+        let Some(manifest_id) = &anim_state.manifest_id else { continue; };
+
         // 이 캐릭터에 연결된 장비 스프라이트들 업데이트
         for (equip_sprite, mut equip_transform, mut sprite) in equipment_query.iter_mut() {
             if equip_sprite.parent_entity != char_entity {
@@ -111,7 +96,7 @@ pub fn update_equipment_positions(
 
             // 앵커 위치 계산
             if let Some(render_info) = equipment_system.renderer.calculate_equipment_position(
-                &anim_state.character_type,
+                manifest_id,
                 Point2D::new(char_transform.translation.x, char_transform.translation.y),
                 anim_state.state,
                 anim_state.direction,

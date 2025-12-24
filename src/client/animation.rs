@@ -87,174 +87,80 @@ impl MonsterAnimations {
     }
 }
 
-/// Animation state enum
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum AnimState {
-    #[default]
-    Idle,
-    Walk,
-    Attack,
-    Hit,
-    Die,
-}
-
-impl AnimState {
-    /// Get the row index for this animation state in a standard spritesheet
-    pub fn row_index(&self) -> usize {
-        match self {
-            AnimState::Idle => 0,
-            AnimState::Walk => 1,
-            AnimState::Attack => 2,
-            AnimState::Hit => 3,
-            AnimState::Die => 3, // Reuse hit row for death
-        }
-    }
-}
-
-/// Direction for 4-directional sprites
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum AnimDirection {
-    #[default]
-    Down = 0,
-    Left = 1,
-    Right = 2,
-    Up = 3,
-}
-
-impl From<crate::shared::domain::Direction> for AnimDirection {
-    fn from(dir: crate::shared::domain::Direction) -> Self {
-        use crate::shared::domain::Direction;
-        match dir {
-            Direction::Down => AnimDirection::Down,
-            Direction::Left => AnimDirection::Left,
-            Direction::Right => AnimDirection::Right,
-            Direction::Up => AnimDirection::Up,
-        }
-    }
-}
-
-/// Animator component for entities with sprite animations
-#[derive(Component)]
-pub struct Animator {
-    /// Current animation state
-    pub state: AnimState,
-    /// Current direction
-    pub direction: AnimDirection,
-    /// Current frame in the animation
+#[derive(Debug, Clone, Component)]
+pub struct SpriteAnimator {
+    pub state: crate::shared::domain::sprite::AnimationState,
+    pub direction: crate::shared::domain::sprite::SpriteDirection,
     pub current_frame: usize,
-    /// Animation timer
     pub timer: Timer,
-    /// Number of frames in current animation
-    pub frame_count: usize,
-    /// Is animation playing?
     pub playing: bool,
-    /// Loop animation?
     pub looping: bool,
-    /// Configuration
-    pub config: AnimationConfig,
+    pub manifest_id: Option<String>,
 }
 
-impl Default for Animator {
+impl Default for SpriteAnimator {
     fn default() -> Self {
         Self {
-            state: AnimState::Idle,
-            direction: AnimDirection::Down,
+            state: crate::shared::domain::sprite::AnimationState::Idle,
+            direction: crate::shared::domain::sprite::SpriteDirection::Down,
             current_frame: 0,
-            timer: Timer::from_seconds(1.0 / 8.0, TimerMode::Repeating),
-            frame_count: 4,
+            timer: Timer::from_seconds(0.15, TimerMode::Repeating),
             playing: true,
             looping: true,
-            config: AnimationConfig::default(),
+            manifest_id: None,
         }
     }
 }
 
-impl Animator {
-    pub fn new(config: AnimationConfig) -> Self {
-        let fps = config.fps;
-        Self {
-            timer: Timer::from_seconds(1.0 / fps, TimerMode::Repeating),
-            frame_count: config.columns,
-            config,
-            ..default()
-        }
-    }
-
-    /// Set animation state (e.g., Idle -> Walk)
-    pub fn set_state(&mut self, state: AnimState) {
-        if self.state != state {
-            self.state = state;
-            self.current_frame = 0;
-            self.timer.reset();
-            self.playing = true;
-            
-            // Attack animation doesn't loop
-            self.looping = !matches!(state, AnimState::Attack | AnimState::Hit | AnimState::Die);
-        }
-    }
-
-    /// Set facing direction
-    pub fn set_direction(&mut self, direction: AnimDirection) {
-        self.direction = direction;
-    }
-
-    /// Get the current sprite index for the texture atlas
-    pub fn sprite_index(&self) -> usize {
-        let row = self.state.row_index();
-        let col = self.current_frame.min(self.frame_count.saturating_sub(1));
-        row * self.config.columns + col
-    }
-
-    /// Advance animation by one frame
-    pub fn advance(&mut self) {
-        if !self.playing {
-            return;
-        }
-
-        self.current_frame += 1;
-        if self.current_frame >= self.frame_count {
-            if self.looping {
-                self.current_frame = 0;
-            } else {
-                self.current_frame = self.frame_count - 1;
-                self.playing = false;
-            }
-        }
-    }
-
-    /// Check if non-looping animation has finished
-    pub fn is_finished(&self) -> bool {
-        !self.looping && !self.playing
-    }
-}
-
-/// System to update animations
+/// System to update animations using SpriteManifest
 pub fn update_animations(
     time: Res<Time>,
-    mut query: Query<(&mut Animator, &mut Sprite)>,
+    sprite_library: Res<super::resources::SpriteLibrary>,
+    mut query: Query<(&mut SpriteAnimator, &mut Sprite)>,
 ) {
-    for (mut animator, mut sprite) in &mut query {
-        if !animator.playing {
+    for (mut anim, mut sprite) in &mut query {
+        if !anim.playing {
             continue;
         }
 
-        animator.timer.tick(time.delta());
-        if animator.timer.just_finished() {
-            animator.advance();
+        anim.timer.tick(time.delta());
+        
+        let Some(manifest_id) = &anim.manifest_id else { continue; };
+        let Some(manifest) = sprite_library.manifests.get(manifest_id) else { continue; };
+        
+        // Get animation sequence
+        let Some(seq) = manifest.get_animation(anim.state) else { continue; };
+        
+        if anim.timer.just_finished() {
+            anim.current_frame += 1;
             
-            // Update sprite rect based on current frame
-            let frame_w = animator.config.frame_width as f32;
-            let frame_h = animator.config.frame_height as f32;
-            let col = animator.current_frame % animator.config.columns;
-            let row = animator.state.row_index();
-            
-            sprite.rect = Some(Rect::new(
-                col as f32 * frame_w,
-                row as f32 * frame_h,
-                (col + 1) as f32 * frame_w,
-                (row + 1) as f32 * frame_h,
-            ));
+            if anim.current_frame >= seq.frame_count {
+                if anim.looping {
+                    anim.current_frame = 0;
+                } else {
+                    anim.current_frame = seq.frame_count - 1;
+                    anim.playing = false;
+                }
+            }
         }
+
+        // Calculate frame index and flip
+        let (index, flip) = manifest.get_frame_index(anim.state, anim.direction, anim.current_frame);
+        
+        // Update sprite
+        sprite.flip_x = flip;
+        
+        // Calculate Rect from index
+        let (rect_x, rect_y, w, h) = manifest.layout.get_frame_rect(index);
+        sprite.rect = Some(Rect::new(
+            rect_x as f32,
+            rect_y as f32,
+            (rect_x + w) as f32,
+            (rect_y + h) as f32,
+        ));
+        
+        // Ensure custom size matches frame size to avoid box squashing
+        sprite.custom_size = Some(Vec2::new(w as f32, h as f32));
     }
 }
 
