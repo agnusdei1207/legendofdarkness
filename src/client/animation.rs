@@ -25,7 +25,7 @@ impl Default for AnimationConfig {
         Self {
             columns: 4,
             rows: 4,
-            frame_width: 48,
+            frame_width: 64,
             frame_height: 64,
             fps: 8.0,
         }
@@ -33,15 +33,17 @@ impl Default for AnimationConfig {
 }
 
 /// Character animation configurations per class
+/// Standard: 256x256 sheet, 64x64 frames, 4x4 grid
 pub struct CharacterAnimations;
 
 impl CharacterAnimations {
     pub fn get_config(_class: &str) -> AnimationConfig {
         // All character classes use same layout for consistency
+        // Standard: 256x256 sheet, 64x64 frames
         AnimationConfig {
             columns: 4,
             rows: 4,
-            frame_width: 48,
+            frame_width: 64,
             frame_height: 64,
             fps: 8.0,
         }

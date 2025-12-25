@@ -39,29 +39,47 @@ pub fn spawn_game_world(
     // Spawn Tiles using tile atlas or fallback colors
     // =============================================
     
-    // Millres Layout (16x16) from data module
-    use crate::shared::data::maps::MILLES_LAYOUT;
+    // Simple 16x16 grid layout (planned: load from map data)
+    const MAP_SIZE: usize = 16;
+    let map_layout: [[char; MAP_SIZE]; MAP_SIZE] = [
+        ['G','G','G','G','G','G','S','S','S','S','G','G','G','G','G','G'],
+        ['G','G','B','W','G','S','S','S','S','S','G','G','B','W','W','G'],
+        ['G','G','D','W','G','S','S','S','S','S','G','W','D','D','W','G'],
+        ['G','G','G','G','G','G','S','S','S','S','G','G','G','G','G','G'],
+        ['S','S','S','S','S','S','S','S','S','S','S','S','S','S','S','S'],
+        ['S','S','S','S','S','F','F','F','S','S','S','S','S','S','S','S'],
+        ['S','S','S','S','S','F','F','F','S','S','S','S','S','S','S','S'],
+        ['S','S','S','S','S','F','F','F','S','S','S','S','S','S','S','S'],
+        ['S','S','S','S','S','S','S','S','S','S','S','S','S','S','S','S'],
+        ['G','G','G','G','G','G','S','S','S','S','G','G','G','G','G','G'],
+        ['G','B','W','G','G','S','S','S','S','S','G','G','B','W','W','G'],
+        ['G','B','D','D','G','S','S','S','S','S','G','W','W','D','D','G'],
+        ['G','G','G','G','G','G','S','S','S','S','G','G','G','G','G','G'],
+        ['G','G','G','G','G','G','S','S','S','S','G','G','G','G','G','G'],
+        ['T','T','T','T','G','G','S','S','S','S','G','G','T','T','T','T'],
+        ['T','T','T','T','G','G','S','S','S','S','G','G','T','T','T','T'],
+    ];
     
-    for (y, row) in MILLES_LAYOUT.iter().enumerate() {
-        for (x, char) in row.chars().enumerate() {
+    for (y, row) in map_layout.iter().enumerate() {
+        for (x, &char) in row.iter().enumerate() {
             let tile_type = match char {
-                'G' => TileType::Grass,
-                'S' => TileType::Stone,
-                'F' => TileType::Fountain,
-                'W' | 'X' => TileType::Wall,
-                'D' => TileType::Door,
-                'B' => TileType::Wall, // Building
-                'T' => TileType::Wall, // Tree (non-walkable)
-                _ => TileType::Grass,
+                'G' => RenderTileType::Grass,
+                'S' => RenderTileType::Stone,
+                'F' => RenderTileType::Fountain,
+                'W' | 'X' => RenderTileType::Wall,
+                'D' => RenderTileType::Door,
+                'B' => RenderTileType::Wall, // Building
+                'T' => RenderTileType::Wall, // Tree (non-walkable)
+                _ => RenderTileType::Grass,
             };
 
             // Use texture if available, otherwise fallback to colors
             let color = match tile_type {
-                TileType::Grass => Color::srgb(0.15, 0.22, 0.12),    // Dark forest green
-                TileType::Stone => Color::srgb(0.25, 0.25, 0.28),    // Cold grey cobblestone
-                TileType::Fountain => Color::srgb(0.2, 0.3, 0.4),    // Dark mystical water
-                TileType::Wall => Color::srgb(0.2, 0.18, 0.15),      // Ancient dark stone
-                TileType::Door => Color::srgb(0.35, 0.2, 0.1),       // Dark wood door
+                RenderTileType::Grass => Color::srgb(0.15, 0.22, 0.12),    // Dark forest green
+                RenderTileType::Stone => Color::srgb(0.25, 0.25, 0.28),    // Cold grey cobblestone
+                RenderTileType::Fountain => Color::srgb(0.2, 0.3, 0.4),    // Dark mystical water
+                RenderTileType::Wall => Color::srgb(0.2, 0.18, 0.15),      // Ancient dark stone
+                RenderTileType::Door => Color::srgb(0.35, 0.2, 0.1),       // Dark wood door
             };
 
             let iso_pos = project_iso(x as f32, y as f32);
@@ -160,7 +178,7 @@ pub fn spawn_game_world(
     // =============================================
     spawn_hud(&mut commands, assets.ui_font.clone());
     
-    println!("🗺️ Game world spawned with {} tiles", MILLES_LAYOUT.len() * 16);
+    println!("🗺️ Game world spawned with {} tiles", MAP_SIZE * MAP_SIZE);
 }
 
 fn spawn_npc(commands: &mut Commands, x: i32, y: i32, name: &str, interaction: InteractionType) {
@@ -567,7 +585,7 @@ pub fn interaction_system(
     // 2. Check for Doors/Portals at current or target position
     for (tile_pos, tile) in &tile_query {
         if tile_pos.x == target_x && tile_pos.y == target_y {
-            if tile.tile_type == TileType::Door {
+            if tile.tile_type == RenderTileType::Door {
                 println!("🚪 건물 안으로 들어갑니다... (맵 전환 보류)");
                 return;
             }

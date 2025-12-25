@@ -199,9 +199,9 @@ impl SpriteLayout {
 impl Default for SpriteLayout {
     fn default() -> Self {
         Self {
-            image_width: 192,
+            image_width: 256,
             image_height: 256,
-            frame_width: 48,
+            frame_width: 64,
             frame_height: 64,
             columns: 4,
             rows: 4,
@@ -365,6 +365,7 @@ impl SpriteManifest {
     }
 
     /// 캐릭터용 기본 매니페스트 생성
+    /// Standard: 256x256 sheet, 64x64 frames, 4x4 grid
     pub fn new_character(id: &str, name: &str, image_path: &str) -> Self {
         let animations = vec![
             AnimationSequence {
@@ -407,10 +408,10 @@ impl SpriteManifest {
             sprite_type: SpriteType::Character,
             image_path: image_path.to_string(),
             layout: SpriteLayout {
-                image_width: 1024,
-                image_height: 1024,
-                frame_width: 256,
-                frame_height: 256,
+                image_width: 256,
+                image_height: 256,
+                frame_width: 64,
+                frame_height: 64,
                 columns: 4,
                 rows: 4,
                 ..Default::default()
@@ -422,9 +423,15 @@ impl SpriteManifest {
     }
 
     /// 몬스터용 기본 매니페스트 생성
-    pub fn new_monster(id: &str, name: &str, image_path: &str, _size: MonsterSpriteSize) -> Self {
-        // All sprites are 1024x1024 with 4x4 grid = 256x256 per frame
-        let (frame_size, image_size) = (256, 1024);
+    /// Standard sizes: Small(32/128), Medium(48/192), Large(64/256), Boss(128/512)
+    pub fn new_monster(id: &str, name: &str, image_path: &str, size: MonsterSpriteSize) -> Self {
+        // Calculate frame and sheet size based on monster size tier
+        let (frame_size, image_size) = match size {
+            MonsterSpriteSize::Small => (32, 128),   // 32x32 frame, 128x128 sheet
+            MonsterSpriteSize::Medium => (48, 192),  // 48x48 frame, 192x192 sheet
+            MonsterSpriteSize::Large => (64, 256),   // 64x64 frame, 256x256 sheet
+            MonsterSpriteSize::Boss => (128, 512),   // 128x128 frame, 512x512 sheet
+        };
 
         let animations = vec![
             AnimationSequence {

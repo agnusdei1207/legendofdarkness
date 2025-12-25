@@ -21,12 +21,12 @@ pub const GRID_UNIT: f32 = TILE_WIDTH;
 // 🎮 2. 캐릭터 규격 (Character Specifications)
 // ============================================================
 
-/// 캐릭터 스프라이트 너비 (픽셀)
-/// 모든 클래스 공통 규격
-pub const CHARACTER_SPRITE_WIDTH: f32 = 48.0;
+/// 캐릭터 스프라이트 크기 (픽셀)
+/// Standard: 64x64 프레임, 256x256 시트 (4x4 그리드)
+pub const CHARACTER_SPRITE_WIDTH: f32 = 64.0;
 
 /// 캐릭터 스프라이트 높이 (픽셀)
-/// 모든 클래스 공통 규격
+/// Standard: 64x64 프레임, 256x256 시트 (4x4 그리드)
 pub const CHARACTER_SPRITE_HEIGHT: f32 = 64.0;
 
 /// 캐릭터 렌더링 스케일 (게임 내 표시 크기)
@@ -62,17 +62,18 @@ pub const MONSTER_RENDER_SCALE: f32 = 1.0;
 // 🖼️ 4. 스프라이트시트 규격 (Sprite Sheet Layout)
 // ============================================================
 
-/// 표준 스프라이트시트 이미지 크기 (정사각형)
-pub const SPRITESHEET_SIZE: u32 = 1024;
+/// 캐릭터 스프라이트시트 이미지 크기 (정사각형)
+/// Standard: 256x256 (64x64 프레임 * 4x4 그리드)
+pub const CHARACTER_SPRITESHEET_SIZE: u32 = 256;
 
-/// 스프라이트시트 열 수 (4x4 그리드)
+/// 스프라이트시트 열 수 (4방향: Down, Left, Right, Up)
 pub const SPRITESHEET_COLUMNS: usize = 4;
 
-/// 스프라이트시트 행 수 (4x4 그리드)
+/// 스프라이트시트 행 수 (4동작: Idle, Walk, Attack, Die)
 pub const SPRITESHEET_ROWS: usize = 4;
 
-/// 계산된 프레임 크기 (1024 / 4 = 256)
-pub const SPRITESHEET_FRAME_SIZE: u32 = SPRITESHEET_SIZE / SPRITESHEET_COLUMNS as u32;
+/// 캐릭터 프레임 크기 (256 / 4 = 64)
+pub const CHARACTER_FRAME_SIZE: u32 = CHARACTER_SPRITESHEET_SIZE / SPRITESHEET_COLUMNS as u32;
 
 // ============================================================
 // 🎬 5. 애니메이션 규격 (Animation Specifications)
@@ -143,27 +144,27 @@ pub const DEBUG_SHOW_HITBOX: bool = false;
 // 📖 10. 문서 및 가이드 (Documentation)
 // ============================================================
 
-/// 에셋 제작 시 참고할 규격 요약
+/// 에셋 제작 시 참고할 규격 요약 (ASSETS.md 참조)
+///
+/// ## 파일 포맷
+/// - **PNG 전용** (무손실, 알파 채널, 투명 배경 필수)
 ///
 /// ## 타일
 /// - 크기: 64x32 픽셀 (2:1 isometric)
-/// - 포맷: WebP (투명 배경)
 ///
 /// ## 캐릭터
-/// - 크기: 48x64 픽셀 (프레임당)
-/// - 스프라이트시트: 1024x1024 (4x4 그리드, 각 프레임 256x256, 실제 스프라이트는 48x64로 중앙 배치)
-/// - 방향: Down, Right, Up (Left는 Right 미러링)
-/// - 상태: Idle(4프레임), Walk(4프레임), Attack(4프레임), Die(4프레임)
+/// - 프레임: 64x64 픽셀
+/// - 시트: 256x256 (4x4 그리드)
+/// - 열: Down(0), Left(1), Right(2), Up(3)
+/// - 행: Idle(0), Walk(1), Attack(2), Die(3)
 ///
 /// ## 몬스터
-/// - Small: 32x32 픽셀
-/// - Medium: 48x48 픽셀
-/// - Large: 64x64 픽셀
-/// - Boss: 128x128 픽셀
-/// - 스프라이트시트: 1024x1024 (4x4 그리드, 각 프레임 256x256, 실제 스프라이트는 크기별로 중앙 배치)
+/// - Small: 32x32 프레임, 128x128 시트
+/// - Medium: 48x48 프레임, 192x192 시트
+/// - Large: 64x64 프레임, 256x256 시트
+/// - Boss: 128x128 프레임, 512x512 시트
 ///
-/// ## 공통 규칙
-/// - 모든 에셋은 투명 배경 (Alpha Channel) 사용
-/// - 포맷: WebP 권장
-/// - 앵커: 하단 중앙 (0.5, 1.0)
+/// ## 장비 (Paper Doll)
+/// - 캐릭터와 동일한 레이아웃 (256x256, 64x64 프레임)
+/// - 앵커 포인트 기반 합성
 pub const ASSET_GUIDELINES: &str = "See ASSETS.md for detailed asset creation guidelines";

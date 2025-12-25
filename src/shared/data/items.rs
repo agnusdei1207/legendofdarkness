@@ -51,6 +51,9 @@ pub struct ItemDef {
     pub price_buy: i64,
     pub price_sell: i64,
     pub icon_path: &'static str,
+    /// Paper Doll layer sprite path (256x256, 4x4 grid matching character animation)
+    /// Only for equippable items (weapons, armor, etc.)
+    pub equipment_sprite: Option<&'static str>,
     pub stackable: bool,
     pub max_stack: i32,
 }
@@ -89,6 +92,7 @@ pub const RED_POTION: ItemDef = ItemDef {
     price_buy: 50,
     price_sell: 25,
     icon_path: "/assets/items/red_potion.png",
+    equipment_sprite: None,
     stackable: true,
     max_stack: 99,
 };
@@ -107,6 +111,7 @@ pub const BLUE_POTION: ItemDef = ItemDef {
     price_buy: 100,
     price_sell: 50,
     icon_path: "/assets/items/blue_potion.png",
+    equipment_sprite: None,
     stackable: true,
     max_stack: 99,
 };
@@ -125,6 +130,7 @@ pub const LARGE_RED_POTION: ItemDef = ItemDef {
     price_buy: 200,
     price_sell: 100,
     icon_path: "/assets/items/large_red_potion.png",
+    equipment_sprite: None,
     stackable: true,
     max_stack: 99,
 };
@@ -145,6 +151,7 @@ pub const WOODEN_SWORD: ItemDef = ItemDef {
     price_buy: 100,
     price_sell: 50,
     icon_path: "/assets/items/wooden_sword.png",
+    equipment_sprite: Some("/assets/equipment/weapons/wooden_sword.png"),
     stackable: false,
     max_stack: 1,
 };
@@ -163,6 +170,7 @@ pub const IRON_SWORD: ItemDef = ItemDef {
     price_buy: 500,
     price_sell: 250,
     icon_path: "/assets/items/iron_sword.png",
+    equipment_sprite: Some("/assets/equipment/weapons/iron_sword.png"),
     stackable: false,
     max_stack: 1,
 };
@@ -181,6 +189,7 @@ pub const STEEL_SWORD: ItemDef = ItemDef {
     price_buy: 1500,
     price_sell: 750,
     icon_path: "/assets/items/steel_sword.png",
+    equipment_sprite: Some("/assets/equipment/weapons/steel_sword.png"),
     stackable: false,
     max_stack: 1,
 };
@@ -201,6 +210,7 @@ pub const RUSTY_DAGGER: ItemDef = ItemDef {
     price_buy: 100,
     price_sell: 50,
     icon_path: "/assets/items/rusty_dagger.png",
+    equipment_sprite: Some("/assets/equipment/weapons/rusty_dagger.png"),
     stackable: false,
     max_stack: 1,
 };
@@ -219,6 +229,7 @@ pub const IRON_DAGGER: ItemDef = ItemDef {
     price_buy: 500,
     price_sell: 250,
     icon_path: "/assets/items/iron_dagger.png",
+    equipment_sprite: Some("/assets/equipment/weapons/iron_dagger.png"),
     stackable: false,
     max_stack: 1,
 };
@@ -239,6 +250,7 @@ pub const WOODEN_STAFF: ItemDef = ItemDef {
     price_buy: 100,
     price_sell: 50,
     icon_path: "/assets/items/wooden_staff.png",
+    equipment_sprite: Some("/assets/equipment/weapons/wooden_staff.png"),
     stackable: false,
     max_stack: 1,
 };
@@ -257,6 +269,70 @@ pub const MAGIC_STAFF: ItemDef = ItemDef {
     price_buy: 500,
     price_sell: 250,
     icon_path: "/assets/items/magic_staff.png",
+    equipment_sprite: Some("/assets/equipment/weapons/magic_staff.png"),
+    stackable: false,
+    max_stack: 1,
+};
+
+// ============ Armor ============
+
+pub const LEATHER_ARMOR: ItemDef = ItemDef {
+    id: 100,
+    name: "Leather Armor",
+    name_key: "item.leather_armor",
+    description_key: "item.leather_armor.desc",
+    category: ItemCategory::Armor,
+    sub_type: "chest",
+    grade: 1,
+    req_level: 1,
+    req_class: None,
+    stats: ItemStats { defense: 5, ..ItemStats::ZERO },
+    price_buy: 150,
+    price_sell: 75,
+    icon_path: "/assets/items/leather_armor.png",
+    equipment_sprite: Some("/assets/equipment/armor/leather_armor.png"),
+    stackable: false,
+    max_stack: 1,
+};
+
+// ============ Helmets ============
+
+pub const IRON_HELMET: ItemDef = ItemDef {
+    id: 200,
+    name: "Iron Helmet",
+    name_key: "item.iron_helmet",
+    description_key: "item.iron_helmet.desc",
+    category: ItemCategory::Armor,
+    sub_type: "helmet",
+    grade: 2,
+    req_level: 5,
+    req_class: None,
+    stats: ItemStats { defense: 3, ..ItemStats::ZERO },
+    price_buy: 300,
+    price_sell: 150,
+    icon_path: "/assets/items/iron_helmet.png",
+    equipment_sprite: Some("/assets/equipment/helmets/iron_helmet.png"),
+    stackable: false,
+    max_stack: 1,
+};
+
+// ============ Shields ============
+
+pub const WOODEN_SHIELD: ItemDef = ItemDef {
+    id: 300,
+    name: "Wooden Shield",
+    name_key: "item.wooden_shield",
+    description_key: "item.wooden_shield.desc",
+    category: ItemCategory::Armor,
+    sub_type: "shield",
+    grade: 1,
+    req_level: 1,
+    req_class: Some(1), // Warrior only
+    stats: ItemStats { defense: 3, ..ItemStats::ZERO },
+    price_buy: 100,
+    price_sell: 50,
+    icon_path: "/assets/items/wooden_shield.png",
+    equipment_sprite: Some("/assets/equipment/shields/wooden_shield.png"),
     stackable: false,
     max_stack: 1,
 };
@@ -296,6 +372,12 @@ pub const ALL_ITEMS: &[&ItemDef] = &[
     // Mage weapons
     &WOODEN_STAFF,
     &MAGIC_STAFF,
+    // Armor
+    &LEATHER_ARMOR,
+    // Helmets
+    &IRON_HELMET,
+    // Shields
+    &WOODEN_SHIELD,
 ];
 
 /// Get item by ID

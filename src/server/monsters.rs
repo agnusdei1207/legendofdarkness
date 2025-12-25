@@ -49,7 +49,7 @@ pub async fn get_monsters() -> Json<Vec<MonsterDataDto>> {
                 detection_range: Some(m.detection_range),
                 attack_range: Some(m.attack_range),
                 move_speed: Some(m.move_speed),
-                description: Some(m.description_key.to_string()),
+                description: Some(format!("{}.desc", m.name_key)),
                 metadata: None,
                 loot: if loot_table.is_empty() { None } else { Some(loot_table) },
             }
@@ -105,7 +105,7 @@ pub async fn get_monster_by_id(
             detection_range: Some(m.detection_range),
             attack_range: Some(m.attack_range),
             move_speed: Some(m.move_speed),
-            description: Some(m.description_key.to_string()),
+            description: Some(format!("{}.desc", m.name_key)),
             metadata: None,
             loot: if loot_table.is_empty() { None } else { Some(loot_table) },
         }

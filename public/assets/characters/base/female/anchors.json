@@ -1,0 +1,104 @@
+{
+    "version": "1.0",
+    "description": "Base female character body anchor points for Paper Doll system",
+    "frame_size": [
+        64,
+        64
+    ],
+    "anchors": {
+        "head": {
+            "x": 32,
+            "y": 8,
+            "description": "Helmet attachment point"
+        },
+        "body": {
+            "x": 32,
+            "y": 32,
+            "description": "Armor center point"
+        },
+        "right_hand": {
+            "x": 46,
+            "y": 38,
+            "description": "Weapon attachment"
+        },
+        "left_hand": {
+            "x": 18,
+            "y": 38,
+            "description": "Shield attachment"
+        },
+        "feet": {
+            "x": 32,
+            "y": 60,
+            "description": "Boot attachment"
+        },
+        "cape": {
+            "x": 32,
+            "y": 24,
+            "description": "Cape attachment behind body"
+        }
+    },
+    "per_frame_overrides": {
+        "idle_down": {},
+        "idle_left": {},
+        "idle_right": {},
+        "idle_up": {},
+        "walk_down": {
+            "right_hand": {
+                "x": 44,
+                "y": 40
+            },
+            "left_hand": {
+                "x": 20,
+                "y": 40
+            }
+        },
+        "walk_up": {
+            "right_hand": {
+                "x": 44,
+                "y": 36
+            },
+            "left_hand": {
+                "x": 20,
+                "y": 36
+            }
+        },
+        "attack_down": {
+            "right_hand": {
+                "x": 50,
+                "y": 30,
+                "rotation": 45
+            }
+        },
+        "attack_left": {
+            "right_hand": {
+                "x": 10,
+                "y": 30,
+                "rotation": -60
+            }
+        },
+        "attack_right": {
+            "right_hand": {
+                "x": 54,
+                "y": 30,
+                "rotation": 60
+            }
+        },
+        "attack_up": {
+            "right_hand": {
+                "x": 32,
+                "y": 4,
+                "rotation": -90
+            }
+        },
+        "die_down": {
+            "body": {
+                "x": 32,
+                "y": 48
+            },
+            "head": {
+                "x": 32,
+                "y": 24
+            }
+        }
+    }
+}

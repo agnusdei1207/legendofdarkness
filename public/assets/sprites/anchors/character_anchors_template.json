@@ -1,0 +1,85 @@
+{
+    "version": "1.0",
+    "sprite": {
+        "frame_size": [
+            64,
+            64
+        ],
+        "sheet_size": [
+            256,
+            256
+        ],
+        "columns": 4,
+        "rows": 4
+    },
+    "anchors": {
+        "head": {
+            "x": 32,
+            "y": 8,
+            "comment": "투구/머리카락 부착점"
+        },
+        "body": {
+            "x": 32,
+            "y": 32,
+            "comment": "갑옷 중심점"
+        },
+        "right_hand": {
+            "x": 48,
+            "y": 36,
+            "comment": "무기 부착점"
+        },
+        "left_hand": {
+            "x": 16,
+            "y": 36,
+            "comment": "방패 부착점"
+        },
+        "feet": {
+            "x": 32,
+            "y": 60,
+            "comment": "그림자/발 이펙트 기준점"
+        }
+    },
+    "per_state_overrides": {
+        "attack": {
+            "down": {
+                "right_hand": {
+                    "x": 48,
+                    "y": 40,
+                    "rotation": 45
+                }
+            },
+            "left": {
+                "right_hand": {
+                    "x": 16,
+                    "y": 36,
+                    "rotation": -45
+                }
+            },
+            "right": {
+                "right_hand": {
+                    "x": 50,
+                    "y": 36,
+                    "rotation": 45
+                }
+            },
+            "up": {
+                "right_hand": {
+                    "x": 48,
+                    "y": 16,
+                    "rotation": -90
+                }
+            }
+        }
+    },
+    "layer_order": [
+        "shadow",
+        "body",
+        "pants",
+        "armor",
+        "hair",
+        "helmet",
+        "weapon",
+        "shield",
+        "effect"
+    ]
+}

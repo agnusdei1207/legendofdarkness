@@ -1,6 +1,6 @@
-//! Map data constants
+//! Map data constants - 5 Circle System
 //!
-//! All map definitions including tile layouts, spawn points, and NPCs.
+//! All map definitions organized by circle regions.
 
 /// Map definition
 #[derive(Debug, Clone)]
@@ -8,28 +8,30 @@ pub struct MapDef {
     pub id: &'static str,
     pub name: &'static str,
     pub name_key: &'static str,
-    pub description_key: &'static str,
+    pub circle: i32,
     pub width: usize,
     pub height: usize,
-    pub tile_size: usize,
     pub min_level: i32,
     pub max_level: i32,
-    pub pvp_enabled: bool,
+    pub is_town: bool,
     pub is_dungeon: bool,
+    pub has_boss: bool,
     pub bgm_path: &'static str,
 }
 
 /// Tile layout for maps
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MapTile {
-    Grass,      // 'G' - Walkable grass
-    Stone,      // 'S' - Walkable stone path
-    Water,      // 'W' - Non-walkable water
-    Wall,       // 'X' - Non-walkable wall
-    Door,       // 'D' - Door/portal
-    Fountain,   // 'F' - Fountain (decoration)
-    Tree,       // 'T' - Tree (non-walkable)
-    Building,   // 'B' - Building (non-walkable)
+    Grass,      // 'G' - Walkable
+    Stone,      // 'S' - Walkable
+    Water,      // 'W' - Non-walkable
+    Wall,       // 'X' - Non-walkable
+    Sand,       // 'A' - Walkable (desert)
+    Ice,        // 'I' - Walkable (slippery)
+    Lava,       // 'L' - Damage tile
+    Tree,       // 'T' - Non-walkable
+    Building,   // 'B' - Non-walkable
+    Door,       // 'D' - Portal
 }
 
 impl MapTile {
@@ -39,16 +41,18 @@ impl MapTile {
             'S' => MapTile::Stone,
             'W' => MapTile::Water,
             'X' => MapTile::Wall,
-            'D' => MapTile::Door,
-            'F' => MapTile::Fountain,
+            'A' => MapTile::Sand,
+            'I' => MapTile::Ice,
+            'L' => MapTile::Lava,
             'T' => MapTile::Tree,
             'B' => MapTile::Building,
+            'D' => MapTile::Door,
             _ => MapTile::Grass,
         }
     }
     
     pub fn is_walkable(&self) -> bool {
-        matches!(self, MapTile::Grass | MapTile::Stone | MapTile::Door)
+        matches!(self, MapTile::Grass | MapTile::Stone | MapTile::Sand | MapTile::Ice | MapTile::Door)
     }
 }
 
@@ -57,19 +61,18 @@ impl MapTile {
 pub struct SpawnPoint {
     pub x: i32,
     pub y: i32,
-    pub monster_name: &'static str,
+    pub monster_id: i32,
     pub respawn_time_ms: u64,
 }
 
-/// NPC definition for maps
+/// NPC definition
 #[derive(Debug, Clone)]
 pub struct NpcDef {
     pub id: &'static str,
     pub name_key: &'static str,
     pub x: i32,
     pub y: i32,
-    pub interaction_type: NpcType,
-    pub dialogue_key: &'static str,
+    pub npc_type: NpcType,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,7 +81,8 @@ pub enum NpcType {
     Inn,
     Blacksmith,
     QuestGiver,
-    Guide,
+    ClassTrainer,
+    Portal,
 }
 
 /// Portal definition
@@ -91,161 +95,218 @@ pub struct PortalDef {
     pub target_y: i32,
 }
 
-// ============ Village Milles (Starting Town) ============
+// ============================================================
+// CIRCLE 1: MILLES REGION (Lv 1-20)
+// ============================================================
 
-pub const VILLAGE_MILLES: MapDef = MapDef {
-    id: "village_milles",
-    name: "Milles Village",
-    name_key: "map.village_milles",
-    description_key: "map.village_milles.desc",
-    width: 16,
-    height: 16,
-    tile_size: 64,
-    min_level: 1,
-    max_level: 99,
-    pvp_enabled: false,
-    is_dungeon: false,
+pub const MILLES_VILLAGE: MapDef = MapDef {
+    id: "milles_village", name: "Milles Village", name_key: "map.milles_village",
+    circle: 1, width: 32, height: 32, min_level: 1, max_level: 99,
+    is_town: true, is_dungeon: false, has_boss: false,
     bgm_path: "/assets/audio/bgm/village.mp3",
 };
 
-/// Milles Village tile layout (16x16)
-pub const MILLES_LAYOUT: [&str; 16] = [
-    "GGGGGGSSSSGGGGGG", // 0 - North area
-    "GGBWGSSSSGGBWWGG", // 1 - Buildings with walls
-    "GGDWGSSSSGWDDWGG", // 2 - Doors
-    "GGGGGGSSSSGGGGGG", // 3
-    "SSSSSSSSSSSSSSSS", // 4 - Main street
-    "SSSSSFFFSSSSSSSS", // 5 - Fountain area
-    "SSSSSFFFSSSSSSSS", // 6
-    "SSSSSFFFSSSSSSSS", // 7
-    "SSSSSSSSSSSSSSSS", // 8 - Main street
-    "GGGGGGSSSSGGGGGG", // 9
-    "GBWGGSSSSGGBWWWG", // 10 - Buildings
-    "GBDDGSSSSGWWDDWG", // 11 - Doors
-    "GGGGGGSSSSGGGGGG", // 12
-    "GGGGGGSSSSGGGGGG", // 13
-    "TTTTGGSSSSGGTTTT", // 14 - Trees
-    "TTTTGGSSSSGGTTTT", // 15 - Trees
-];
-
-/// Milles NPCs
-pub const MILLES_NPCS: &[NpcDef] = &[
-    NpcDef {
-        id: "innkeeper_milles",
-        name_key: "npc.innkeeper",
-        x: 2,
-        y: 2,
-        interaction_type: NpcType::Inn,
-        dialogue_key: "npc.innkeeper.dialogue",
-    },
-    NpcDef {
-        id: "shopkeeper_milles",
-        name_key: "npc.shopkeeper",
-        x: 12,
-        y: 11,
-        interaction_type: NpcType::Shop,
-        dialogue_key: "npc.shopkeeper.dialogue",
-    },
-    NpcDef {
-        id: "blacksmith_milles",
-        name_key: "npc.blacksmith",
-        x: 13,
-        y: 2,
-        interaction_type: NpcType::Blacksmith,
-        dialogue_key: "npc.blacksmith.dialogue",
-    },
-];
-
-/// Portals from Milles
-pub const MILLES_PORTALS: &[PortalDef] = &[
-    PortalDef {
-        x: 7,
-        y: 15,
-        target_map: "hunting_ground_1",
-        target_x: 8,
-        target_y: 1,
-    },
-];
-
-// ============ Beginner Hunting Ground ============
-
-pub const HUNTING_GROUND_1: MapDef = MapDef {
-    id: "hunting_ground_1",
-    name: "Beginner Hunting Ground",
-    name_key: "map.hunting_ground_1",
-    description_key: "map.hunting_ground_1.desc",
-    width: 20,
-    height: 20,
-    tile_size: 64,
-    min_level: 1,
-    max_level: 10,
-    pvp_enabled: false,
-    is_dungeon: false,
+pub const MILLES_PLAINS: MapDef = MapDef {
+    id: "milles_plains", name: "Milles Plains", name_key: "map.milles_plains",
+    circle: 1, width: 64, height: 64, min_level: 1, max_level: 10,
+    is_town: false, is_dungeon: false, has_boss: false,
     bgm_path: "/assets/audio/bgm/field.mp3",
 };
 
-/// Hunting ground spawns
-pub const HUNTING_GROUND_1_SPAWNS: &[SpawnPoint] = &[
-    SpawnPoint { x: 3, y: 3, monster_name: "Giant Rat", respawn_time_ms: 30000 },
-    SpawnPoint { x: 3, y: 13, monster_name: "Vampire Bat", respawn_time_ms: 30000 },
-    SpawnPoint { x: 13, y: 3, monster_name: "Slime", respawn_time_ms: 45000 },
-    SpawnPoint { x: 13, y: 13, monster_name: "Slime", respawn_time_ms: 45000 },
-    SpawnPoint { x: 8, y: 8, monster_name: "Giant Rat", respawn_time_ms: 30000 },
-    SpawnPoint { x: 16, y: 8, monster_name: "Vampire Bat", respawn_time_ms: 30000 },
-];
+pub const WOLF_FOREST: MapDef = MapDef {
+    id: "wolf_forest", name: "Wolf Forest", name_key: "map.wolf_forest",
+    circle: 1, width: 48, height: 48, min_level: 10, max_level: 20,
+    is_town: false, is_dungeon: false, has_boss: false,
+    bgm_path: "/assets/audio/bgm/forest.mp3",
+};
 
-// ============ Dungeon 1: Slime Cave ============
-
-pub const SLIME_CAVE: MapDef = MapDef {
-    id: "slime_cave",
-    name: "Slime Cave",
-    name_key: "map.slime_cave",
-    description_key: "map.slime_cave.desc",
-    width: 24,
-    height: 24,
-    tile_size: 64,
-    min_level: 10,
-    max_level: 20,
-    pvp_enabled: false,
-    is_dungeon: true,
+pub const WOLF_DEN: MapDef = MapDef {
+    id: "wolf_den", name: "Wolf Den", name_key: "map.wolf_den",
+    circle: 1, width: 24, height: 24, min_level: 15, max_level: 20,
+    is_town: false, is_dungeon: true, has_boss: true,
     bgm_path: "/assets/audio/bgm/dungeon.mp3",
 };
 
-/// All map definitions
+// ============================================================
+// CIRCLE 2: SARAKH REGION (Lv 21-40)
+// ============================================================
+
+pub const SARAKH_OASIS: MapDef = MapDef {
+    id: "sarakh_oasis", name: "Sarakh Oasis", name_key: "map.sarakh_oasis",
+    circle: 2, width: 32, height: 32, min_level: 21, max_level: 99,
+    is_town: true, is_dungeon: false, has_boss: false,
+    bgm_path: "/assets/audio/bgm/oasis.mp3",
+};
+
+pub const SARAKH_DESERT: MapDef = MapDef {
+    id: "sarakh_desert", name: "Sarakh Desert", name_key: "map.sarakh_desert",
+    circle: 2, width: 80, height: 80, min_level: 21, max_level: 35,
+    is_town: false, is_dungeon: false, has_boss: false,
+    bgm_path: "/assets/audio/bgm/desert.mp3",
+};
+
+pub const ANCIENT_PYRAMID: MapDef = MapDef {
+    id: "ancient_pyramid", name: "Ancient Pyramid", name_key: "map.ancient_pyramid",
+    circle: 2, width: 32, height: 32, min_level: 30, max_level: 40,
+    is_town: false, is_dungeon: true, has_boss: true,
+    bgm_path: "/assets/audio/bgm/pyramid.mp3",
+};
+
+// ============================================================
+// CIRCLE 3: FROST REGION (Lv 41-60)
+// ============================================================
+
+pub const FROST_HAVEN: MapDef = MapDef {
+    id: "frost_haven", name: "Frost Haven", name_key: "map.frost_haven",
+    circle: 3, width: 32, height: 32, min_level: 41, max_level: 99,
+    is_town: true, is_dungeon: false, has_boss: false,
+    bgm_path: "/assets/audio/bgm/frost_town.mp3",
+};
+
+pub const FROST_MOUNTAIN: MapDef = MapDef {
+    id: "frost_mountain", name: "Frost Mountain", name_key: "map.frost_mountain",
+    circle: 3, width: 64, height: 64, min_level: 41, max_level: 55,
+    is_town: false, is_dungeon: false, has_boss: false,
+    bgm_path: "/assets/audio/bgm/blizzard.mp3",
+};
+
+pub const ICE_CAVERN: MapDef = MapDef {
+    id: "ice_cavern", name: "Ice Cavern", name_key: "map.ice_cavern",
+    circle: 3, width: 40, height: 40, min_level: 50, max_level: 60,
+    is_town: false, is_dungeon: true, has_boss: true,
+    bgm_path: "/assets/audio/bgm/ice_cave.mp3",
+};
+
+// ============================================================
+// CIRCLE 4: INFERNO REGION (Lv 61-80)
+// ============================================================
+
+pub const EMBER_OUTPOST: MapDef = MapDef {
+    id: "ember_outpost", name: "Ember Outpost", name_key: "map.ember_outpost",
+    circle: 4, width: 24, height: 24, min_level: 61, max_level: 99,
+    is_town: true, is_dungeon: false, has_boss: false,
+    bgm_path: "/assets/audio/bgm/outpost.mp3",
+};
+
+pub const INFERNO_VOLCANO: MapDef = MapDef {
+    id: "inferno_volcano", name: "Inferno Volcano", name_key: "map.inferno_volcano",
+    circle: 4, width: 64, height: 64, min_level: 61, max_level: 75,
+    is_town: false, is_dungeon: false, has_boss: false,
+    bgm_path: "/assets/audio/bgm/volcano.mp3",
+};
+
+pub const DEMON_LAIR: MapDef = MapDef {
+    id: "demon_lair", name: "Demon Lair", name_key: "map.demon_lair",
+    circle: 4, width: 48, height: 48, min_level: 70, max_level: 80,
+    is_town: false, is_dungeon: true, has_boss: true,
+    bgm_path: "/assets/audio/bgm/demon.mp3",
+};
+
+// ============================================================
+// CIRCLE 5: DARK REGION (Lv 81-99)
+// ============================================================
+
+pub const SHADOW_SANCTUARY: MapDef = MapDef {
+    id: "shadow_sanctuary", name: "Shadow Sanctuary", name_key: "map.shadow_sanctuary",
+    circle: 5, width: 24, height: 24, min_level: 81, max_level: 99,
+    is_town: true, is_dungeon: false, has_boss: false,
+    bgm_path: "/assets/audio/bgm/sanctuary.mp3",
+};
+
+pub const DARK_CASTLE: MapDef = MapDef {
+    id: "dark_castle", name: "Dark Castle", name_key: "map.dark_castle",
+    circle: 5, width: 80, height: 80, min_level: 81, max_level: 95,
+    is_town: false, is_dungeon: false, has_boss: false,
+    bgm_path: "/assets/audio/bgm/dark_castle.mp3",
+};
+
+pub const THRONE_OF_DARKNESS: MapDef = MapDef {
+    id: "throne_of_darkness", name: "Throne of Darkness", name_key: "map.throne_of_darkness",
+    circle: 5, width: 32, height: 32, min_level: 90, max_level: 99,
+    is_town: false, is_dungeon: true, has_boss: true,
+    bgm_path: "/assets/audio/bgm/final_boss.mp3",
+};
+
+// ============================================================
+// MAP REGISTRY
+// ============================================================
+
 pub const ALL_MAPS: &[&MapDef] = &[
-    &VILLAGE_MILLES,
-    &HUNTING_GROUND_1,
-    &SLIME_CAVE,
+    // Circle 1
+    &MILLES_VILLAGE, &MILLES_PLAINS, &WOLF_FOREST, &WOLF_DEN,
+    // Circle 2
+    &SARAKH_OASIS, &SARAKH_DESERT, &ANCIENT_PYRAMID,
+    // Circle 3
+    &FROST_HAVEN, &FROST_MOUNTAIN, &ICE_CAVERN,
+    // Circle 4
+    &EMBER_OUTPOST, &INFERNO_VOLCANO, &DEMON_LAIR,
+    // Circle 5
+    &SHADOW_SANCTUARY, &DARK_CASTLE, &THRONE_OF_DARKNESS,
 ];
 
-/// Get map by ID
 pub fn get_map_by_id(id: &str) -> Option<&'static MapDef> {
     ALL_MAPS.iter().find(|m| m.id == id).copied()
 }
 
-/// Dungeon definitions for progression
-#[derive(Debug, Clone)]
-pub struct DungeonDef {
-    pub id: i32,
-    pub map_id: &'static str,
-    pub name_key: &'static str,
-    pub level_req: i32,
-    pub required_clears_for_next: i32,
+pub fn get_maps_by_circle(circle: i32) -> Vec<&'static MapDef> {
+    ALL_MAPS.iter().filter(|m| m.circle == circle).copied().collect()
 }
 
-pub const ALL_DUNGEONS: &[DungeonDef] = &[
-    DungeonDef {
-        id: 1,
-        map_id: "hunting_ground_1",
-        name_key: "dungeon.beginner_hunting",
-        level_req: 1,
-        required_clears_for_next: 10,
-    },
-    DungeonDef {
-        id: 2,
-        map_id: "slime_cave",
-        name_key: "dungeon.slime_cave",
-        level_req: 10,
-        required_clears_for_next: 10,
-    },
+pub fn get_towns() -> Vec<&'static MapDef> {
+    ALL_MAPS.iter().filter(|m| m.is_town).copied().collect()
+}
+
+pub fn get_dungeons() -> Vec<&'static MapDef> {
+    ALL_MAPS.iter().filter(|m| m.is_dungeon).copied().collect()
+}
+
+// ============================================================
+// SPAWN CONFIGURATIONS
+// ============================================================
+
+pub const MILLES_PLAINS_SPAWNS: &[SpawnPoint] = &[
+    SpawnPoint { x: 10, y: 10, monster_id: 101, respawn_time_ms: 30000 },  // Giant Rat
+    SpawnPoint { x: 20, y: 15, monster_id: 101, respawn_time_ms: 30000 },
+    SpawnPoint { x: 30, y: 20, monster_id: 102, respawn_time_ms: 30000 },  // Vampire Bat
+    SpawnPoint { x: 15, y: 30, monster_id: 103, respawn_time_ms: 45000 },  // Slime
+    SpawnPoint { x: 40, y: 25, monster_id: 104, respawn_time_ms: 60000 },  // Corrupted Fox
+];
+
+pub const WOLF_FOREST_SPAWNS: &[SpawnPoint] = &[
+    SpawnPoint { x: 10, y: 10, monster_id: 104, respawn_time_ms: 45000 },  // Corrupted Fox
+    SpawnPoint { x: 25, y: 20, monster_id: 105, respawn_time_ms: 60000 },  // Wolf
+    SpawnPoint { x: 35, y: 15, monster_id: 105, respawn_time_ms: 60000 },
+    SpawnPoint { x: 20, y: 35, monster_id: 105, respawn_time_ms: 60000 },
+];
+
+pub const WOLF_DEN_SPAWNS: &[SpawnPoint] = &[
+    SpawnPoint { x: 5, y: 5, monster_id: 105, respawn_time_ms: 45000 },    // Wolf
+    SpawnPoint { x: 15, y: 10, monster_id: 105, respawn_time_ms: 45000 },
+    SpawnPoint { x: 12, y: 12, monster_id: 199, respawn_time_ms: 300000 }, // Wolf Alpha (Boss)
+];
+
+// ============================================================
+// NPC CONFIGURATIONS
+// ============================================================
+
+pub const MILLES_NPCS: &[NpcDef] = &[
+    NpcDef { id: "innkeeper", name_key: "npc.innkeeper", x: 8, y: 8, npc_type: NpcType::Inn },
+    NpcDef { id: "shopkeeper", name_key: "npc.shopkeeper", x: 12, y: 8, npc_type: NpcType::Shop },
+    NpcDef { id: "blacksmith", name_key: "npc.blacksmith", x: 16, y: 8, npc_type: NpcType::Blacksmith },
+    NpcDef { id: "warrior_trainer", name_key: "npc.warrior_trainer", x: 10, y: 16, npc_type: NpcType::ClassTrainer },
+    NpcDef { id: "mage_trainer", name_key: "npc.mage_trainer", x: 14, y: 16, npc_type: NpcType::ClassTrainer },
+    NpcDef { id: "quest_elder", name_key: "npc.quest_elder", x: 16, y: 16, npc_type: NpcType::QuestGiver },
+];
+
+// ============================================================
+// PORTAL CONFIGURATIONS
+// ============================================================
+
+pub const MILLES_VILLAGE_PORTALS: &[PortalDef] = &[
+    PortalDef { x: 16, y: 30, target_map: "milles_plains", target_x: 5, target_y: 5 },
+];
+
+pub const MILLES_PLAINS_PORTALS: &[PortalDef] = &[
+    PortalDef { x: 5, y: 5, target_map: "milles_village", target_x: 16, target_y: 28 },
+    PortalDef { x: 60, y: 60, target_map: "wolf_forest", target_x: 5, target_y: 5 },
 ];

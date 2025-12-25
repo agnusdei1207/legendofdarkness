@@ -1,0 +1,59 @@
+{
+    "version": "1.0",
+    "frame_size": [
+        64,
+        64
+    ],
+    "anchors": {
+        "head": {
+            "x": 32,
+            "y": 8
+        },
+        "body": {
+            "x": 32,
+            "y": 32
+        },
+        "right_hand": {
+            "x": 48,
+            "y": 40
+        },
+        "left_hand": {
+            "x": 16,
+            "y": 40
+        },
+        "feet": {
+            "x": 32,
+            "y": 60
+        }
+    },
+    "per_frame_overrides": {
+        "attack_down": {
+            "right_hand": {
+                "x": 52,
+                "y": 36,
+                "rotation": 45
+            }
+        },
+        "attack_left": {
+            "right_hand": {
+                "x": 8,
+                "y": 36,
+                "rotation": -45
+            }
+        },
+        "attack_right": {
+            "right_hand": {
+                "x": 56,
+                "y": 36,
+                "rotation": 45
+            }
+        },
+        "attack_up": {
+            "right_hand": {
+                "x": 32,
+                "y": 8,
+                "rotation": -90
+            }
+        }
+    }
+}

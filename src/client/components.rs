@@ -139,17 +139,19 @@ pub struct MovementProgress {
     pub start_pos: Vec2, // Logical grid coords as f32
 }
 
-/// Tile component
+/// Tile component for rendering
 #[derive(Component)]
 pub struct TileComponent {
-    pub tile_type: TileType,
+    pub tile_type: RenderTileType,
 }
 
+/// Render-specific tile types (includes visual-only tiles like Fountain)
+/// For map data, use `crate::shared::data::maps::MapTile`
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TileType {
+pub enum RenderTileType {
     Grass,
     Stone,
-    Fountain,
+    Fountain,  // Visual decoration, not in MapTile
     Wall,
     Door,
 }

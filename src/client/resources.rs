@@ -92,6 +92,8 @@ impl Default for SkillData {
                     skills::SkillEffectType::Heal => "heal".to_string(),
                     skills::SkillEffectType::Buff => "buff".to_string(),
                     skills::SkillEffectType::Debuff => "debuff".to_string(),
+                    skills::SkillEffectType::DamageOverTime => "damage_over_time".to_string(),
+                    skills::SkillEffectType::HealOverTime => "heal_over_time".to_string(),
                 }),
                 base_value: s.base_value,
                 icon_path: Some(s.icon_path.to_string()),
@@ -142,7 +144,7 @@ impl Default for MonsterDefinitions {
                 sprite_path: monster_def.sprite_path(),
                 sprite_type: monster_def.sprite_type.to_string(),
                 sprite_size: monster_def.sprite_size,
-                description: monster_def.description_key.to_string(),
+                description: format!("{}.desc", monster_def.name_key),
                 metadata: None,
                 loot_table: loot_drops,
             };

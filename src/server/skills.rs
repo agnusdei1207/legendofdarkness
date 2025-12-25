@@ -24,6 +24,8 @@ fn skill_def_to_skill(def: &crate::shared::data::skills::SkillDef) -> Skill {
             SkillEffectType::Heal => "heal",
             SkillEffectType::Buff => "buff",
             SkillEffectType::Debuff => "debuff",
+            SkillEffectType::DamageOverTime => "damage_over_time",
+            SkillEffectType::HealOverTime => "heal_over_time",
         }.to_string()),
         base_value: def.base_value,
         icon_path: Some(def.icon_path.to_string()),
